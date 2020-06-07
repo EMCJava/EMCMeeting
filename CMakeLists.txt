@@ -14,6 +14,9 @@ include_directories( PUBLIC ${SFML_INCLUDE_DIRS})
 # Link SFML and dependencies
 target_link_libraries(EMCWindowlib ${SFML_LIBRARIES} ${SFML_DEPENDENCIES} )
 
+target_link_libraries(UserLoginWindowlib Buttonlib)
+target_link_libraries(UserLoginWindowlib InputFieldlib)
+
 target_link_libraries(EMCMeetinglib EMCWindowlib)
 target_link_libraries(EMCMeetinglib AccountDatalib)
 target_link_libraries(EMCMeetinglib UserLoginWindowlib)
