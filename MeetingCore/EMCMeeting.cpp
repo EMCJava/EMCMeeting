@@ -29,7 +29,7 @@ bool EMCMeeting::Update() {
 bool EMCMeeting::AccountLogIn() {
 #warning It should implement in UI
 
-    UserLoginWindow loginWindow(800, 600);
+    UserLoginWindow loginWindow(400, 200);
 
     // wait till window had closed, which means user has finished filling in their user data
     while (loginWindow.Update());
