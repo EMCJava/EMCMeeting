@@ -6,7 +6,7 @@
 
 Window::Window(bool fullscreen, int screen_size_x, int screen_size_y) {
 
-    std::cout << "new Window Created !" << std::endl;
+    ToolBox::log() << "new Window Created !" << std::endl;
 
     if (fullscreen) {
         m_app_size_x = screen_size_x;
