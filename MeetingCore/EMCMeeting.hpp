@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "../Interface/Window/EMCWindow.hpp"
+#include "Core/AccountData/AccountData.hpp"
 
 //for make_unique
 #include "../ToolBox/ToolBox.hpp"
@@ -18,6 +19,7 @@ class EMCMeeting {
 private:
 
     std::unique_ptr<Window> m_main_window;
+    std::unique_ptr<AccountData> m_user_account_data;
 
 public:
 
