@@ -16,6 +16,7 @@ target_link_libraries(EMCWindowlib ${SFML_LIBRARIES} ${SFML_DEPENDENCIES} )
 
 target_link_libraries(EMCMeetinglib EMCWindowlib)
 target_link_libraries(EMCMeetinglib AccountDatalib)
+target_link_libraries(EMCMeetinglib UserLoginWindowlib)
 
 # Main executable file
 add_executable(EMCMeeting main.cpp)

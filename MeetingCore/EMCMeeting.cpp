@@ -8,26 +8,15 @@ EMCMeeting::EMCMeeting() {
 
     ToolBox::log() << "new EMCMeeting Created" << std::endl;
 
+    AccountLogIn();
+
     m_main_window = ToolBox::make_unique<Window>(false, 800, 600);
 
-#warning It should implement in UI
-
-    std::string username, password;
-    std::cout << "Enter your user name : ";
-    std::getline(std::cin, username);
-    std::cout << "Enter your password : ";
-    std::getline(std::cin, password);
-
-    m_user_account_data = ToolBox::make_unique<AccountData>(username, password);
 }
 
 bool EMCMeeting::Update() {
 
-    if (m_main_window->IsOpen()) {
-
-        m_main_window->Update();
-
-    } else {
+    if (!m_main_window->Update()) {
 #warning[return false;] commented for testing without window
         //ToolBox::err() << "Window was closed, unable to update" << std::endl;
         //return false;
@@ -35,4 +24,28 @@ bool EMCMeeting::Update() {
 
     return true;
 
+}
+
+bool EMCMeeting::AccountLogIn() {
+#warning It should implement in UI
+
+    UserLoginWindow loginWindow(800, 600);
+
+    // wait till window had closed, which means user has finished filling in their user data
+    while (loginWindow.Update());
+
+    // get the name and password from the input window class
+    std::string username = loginWindow.user_name, password = loginWindow.password;
+
+    m_user_account_data = ToolBox::make_unique<AccountData>(username, password);
+
+    // trt to log in
+    if (!m_user_account_data->login()) {
+
+        ToolBox::err() << "Invalid user name or password, please check" << std::endl;
+
+        return true;
+    }
+
+    return true;
 }
