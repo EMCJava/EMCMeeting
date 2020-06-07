@@ -8,19 +8,17 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 
+#include "WindowBase.hpp"
+
 //for make_unique
 #include "../../ToolBox/ToolBox.hpp"
 
-class Window {
+class Window : public WindowBase{
 
 private:
 
-    // the size of the main window
-    int m_app_size_x, m_app_size_y;
-    std::unique_ptr<sf::RenderWindow> m_app;
-
     // adjust any property the relate to window size
-    void ChangeWindowsSize_();
+    void ChangeWindowsSize_() override ;
 
 public:
 
@@ -29,7 +27,8 @@ public:
     // return true if the current main window is running
     bool IsOpen() const;
 
-    void Update();
+    // return true if the current main window is running
+    bool Update() override ;
 };
 
 

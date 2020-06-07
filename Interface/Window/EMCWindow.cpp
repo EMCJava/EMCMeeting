@@ -26,7 +26,11 @@ void Window::ChangeWindowsSize_() {
 
 }
 
-void Window::Update() {
+bool Window::Update() {
+
+    if (!IsOpen()) {
+        return false;
+    }
 
     sf::Event app_event{};
 
@@ -48,6 +52,8 @@ void Window::Update() {
 
     m_app->clear();
     m_app->display();
+
+    return true;
 }
 
 bool Window::IsOpen() const {
