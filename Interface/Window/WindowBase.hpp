@@ -21,6 +21,8 @@ public:
 
     virtual bool Update() = 0;
 
+    virtual void Close() {};
+
 };
 
 #endif //EMCMEETING_WINDOWBASE_HPP
