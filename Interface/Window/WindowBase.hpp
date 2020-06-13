@@ -21,7 +21,7 @@ public:
 
     virtual bool Update() = 0;
 
-    virtual void Close() {};
+    virtual void Close() { if (m_app)m_app->close(); };
 
 };
 
