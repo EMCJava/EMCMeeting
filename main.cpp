@@ -2,7 +2,7 @@
 
 int main() {
 
-    EMCMeeting met;
+    EMCMeeting met(10);
 
     while (met.Update()) {
 
