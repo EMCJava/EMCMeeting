@@ -20,6 +20,8 @@ private:
     // adjust any property the relate to window size
     void ChangeWindowsSize_() override ;
 
+    bool m_is_focusing = true;
+
 public:
 
     Window(bool fullscreen, int screen_size_x = 800, int screen_size_y = 600);
@@ -29,6 +31,8 @@ public:
 
     // return true if the current main window is running
     bool Update() override ;
+
+    bool IsOnFocus();
 };
 
 

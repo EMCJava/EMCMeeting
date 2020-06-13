@@ -43,6 +43,16 @@ bool Window::Update() {
                 m_app->close();
                 break;
 
+            case sf::Event::LostFocus:
+                m_is_focusing = false;
+
+                break;
+
+            case sf::Event::GainedFocus:
+                m_is_focusing = true;
+
+                break;
+
             default:
                 break;
 
@@ -58,4 +68,8 @@ bool Window::Update() {
 
 bool Window::IsOpen() const {
     return m_app->isOpen();
+}
+
+bool Window::IsOnFocus() {
+    return m_app->hasFocus();
 }
