@@ -5,7 +5,7 @@
 int TCPServer::receive(int targetfd, Socket::Message &message) {
     // not for thread to use this function yet, no lock added.
     static constexpr auto size_info_size = sizeof(typeof(message.mes.size()));
-    static char size_info[size_info_size];
+    static std::vector<char> size_info;
 
     if (sockfd == EmptySock()) {
         std::cerr << "Socket fd not exist !" << std::endl;
@@ -13,42 +13,67 @@ int TCPServer::receive(int targetfd, Socket::Message &message) {
         return -1;
     }
 
-    if (::recv(targetfd, size_info, size_info_size, 0) != size_info_size) {
+    int result;
+    if ((result = receive(targetfd, size_info_size, size_info)) != size_info_size) {
 
         std::cerr << "Failed to fetch mes size" << std::endl;
-        return -1;
+        return result;
 
     }
 
     typeof(message.mes.size()) message_size;
 
-    std::memcpy(reinterpret_cast<char *>(&message_size), size_info, size_info_size);
+    std::memcpy(reinterpret_cast<char *>(&message_size), size_info.data(), size_info_size);
 
-    message.mes.resize(message_size);
+    return receive(targetfd, message_size, message.mes);
+}
 
-    typeof(message.mes.size()) data_received = 0;
+
+int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float time_ous_second) {
+
+    const clock_t begin_time = clock();
+
+    if (arr.size() != size)
+        arr.resize(size);
+
+    typeof(arr.size()) data_received = 0;
 
     while (true) {
-        const auto result = ::recv(targetfd, message.mes.data() + data_received, message_size - data_received, 0);
+        const auto result = ::recv(targetfd, arr.data() + data_received, size - data_received, 0);
+
+        if (result == 0) {
+
+            std::cerr << "Socket disconnected !!" << std::endl;
+
+            return 0;
+
+        }
 
         // connect error
         if (result == -1) {
+
+            // not out of time
+            if ((float) (clock() - begin_time) / CLOCKS_PER_SEC < time_ous_second) {
+                continue;
+            }
+
             std::cerr << "Unable to receive data !!" << std::endl;
             return -1;
         }
 
         data_received += result;
 
-        std::cout << "received : " << data_received << " bytes, " << message_size - data_received << " bytes to go."
+        std::cout << "received : " << data_received << " bytes, " << size - data_received << " bytes to go."
                   << std::endl;
 
-        if (data_received >= message_size) {
+        if (data_received >= size) {
             break;
         }
     }
 
     return data_received;
 }
+
 
 int TCPServer::send(int targetfd, Socket::Message &message) {
     // not for thread to use this function yet, no lock added.
@@ -139,6 +164,20 @@ int TCPServer::Setup(in_addr_t server_ip, int port) {
         return sockfd;
     }
 
+
+    int opt = 1;
+
+    //set socket to allow multiple connections ,
+    //this is just a good habit, it will work without this
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt,
+                   sizeof(opt)) < 0) {
+        std::cerr << "setsockopt error" << std::endl;
+
+        sockfd = EmptySock();
+
+        return sockfd;
+    }
+
     struct sockaddr_in serverInfo{};
     std::memset(&serverInfo, 0, sizeof(serverInfo));
 
@@ -185,4 +224,12 @@ int TCPServer::accept() {
 
 TCPServer::~TCPServer() {
     ShutDown();
+}
+
+TCPServer::TCPServer(int port) {
+    Setup(INADDR_ANY, port);
+}
+
+int TCPServer::GetFD() {
+    return Socket::GetFD();
 }
