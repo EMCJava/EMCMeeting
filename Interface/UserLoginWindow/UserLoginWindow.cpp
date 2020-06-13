@@ -65,14 +65,13 @@ bool UserLoginWindow::Update() {
 
         if (m_buttons->isPressed()) {
 
+            m_is_cancel = false;
             Close();
             return false;
         }
 
         for (auto &field : m_input_fields) {
             field.display(m_app.get(), clock());
-            sf::Text a;
-            a.setCharacterSize(1);
         }
 
         m_app->display();
@@ -101,5 +100,9 @@ void UserLoginWindow::Close() {
     user_name = m_input_fields[0].getText();
     password = m_input_fields[1].getText();
 
-    m_app->close();
+    WindowBase::Close();
+}
+
+bool UserLoginWindow::IsCancel() {
+    return m_is_cancel;
 }

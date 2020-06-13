@@ -9,7 +9,7 @@
 #include <string>
 #include <SFML/Graphics.hpp>
 
-#include "WindowBase.hpp"
+#include "../Window/WindowBase.hpp"
 #include "../../ToolBox/ToolBox.hpp"
 
 #include "../UI/Button/Button.hpp"
@@ -21,21 +21,24 @@ private:
 
     static const std::string sm_font_path;
 
-
     std::vector<InputField> m_input_fields;
     std::unique_ptr<Button> m_buttons;
 
     void text_input(const char character);
 
+    bool m_is_cancel = true;
+
 public:
-    std::string user_name = "Empty", password = "Empty";
+    std::string user_name, password;
 
     UserLoginWindow(int screen_size_x, int screen_size_y);
 
     // return false if window has closed or user had completed to fill in their data
     bool Update() override;
 
-    void Close() override ;
+    void Close() override;
+
+    bool IsCancel();
 };
 
 
