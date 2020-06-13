@@ -1,3 +1,6 @@
+#ifndef EMCNETWORK_SOCKET_HPP
+#define EMCNETWORK_SOCKET_HPP
+
 #include <iostream>
 #include <cstring>
 #include <vector>
@@ -23,7 +26,6 @@ protected:
 public:
     struct Message {
 
-        size_t max_size = 0;
         std::vector<char> mes;
 
     };
@@ -36,5 +38,15 @@ public:
     virtual int send(int targetfd, Message &message) { return -1; } // from server, bad idea
     virtual int send(Message &message) { return -1; } // from client, bad idea
 
+    virtual int GetFD() { return sockfd; };
+
     static constexpr int EmptySock() { return -1; }
+
+    static bool IsValidIP(std::string str) {
+        struct sockaddr_in sa;
+        int result = inet_pton(AF_INET, str.c_str(), &(sa.sin_addr));
+        return result != 0;
+    };
 };
+
+#endif
