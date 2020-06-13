@@ -31,6 +31,8 @@ private:
     */
     std::map<std::string, std::tuple<std::wstring, std::string, int, int, int, int, int>> texts_;
 
+    sf::Color m_text_color = sf::Color::Black;
+
     static bool _font_exists(const std::string font_name);
     void packSFText(std::string id, sf::Text& text);
 
@@ -53,6 +55,8 @@ public:
     void render(sf::RenderWindow* win);
 
     void alignText(std::string id);
+
+    void setTextColor(sf::Color color);
 };
 
 #endif

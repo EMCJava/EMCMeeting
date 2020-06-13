@@ -63,6 +63,8 @@ public:
      *update and render the button
     */
     void display(sf::RenderWindow* win);
+
+    void setTextColor(sf::Color color);
 };
 
 #endif

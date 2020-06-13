@@ -110,7 +110,7 @@ Button::Button(std::string id, std::string font_name, std::wstring text, float l
     , button_width(width)
     , button_height(height)
 {
-    std::cout << "\033[1;35mButton constructor called !!\033[0m" << std::endl;
+    //std::cout << "\033[1;35mButton constructor called !!\033[0m" << std::endl;
 
     this->_initButtonSprite(edge_point_count, edge_radius);
     text_.addText("button_text", text, font_name, text_size, button_width / 2.0f, button_height / 2.0f);
@@ -215,4 +215,10 @@ void Button::display(sf::RenderWindow* win)
 {
     this->update(win);
     this->render(win);
+}
+
+void Button::setTextColor(sf::Color color) {
+
+    text_.setTextColor(color);
+
 }

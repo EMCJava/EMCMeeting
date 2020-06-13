@@ -4,7 +4,7 @@ InputField::InputField(std::string id, std::string font_name, std::string init_t
     : Button(id, font_name, init_text, loca_x, loca_y, width, height, text_size, 2, 5)
     , text_str_(init_text)
 {
-    std::cout << "\033[1;35mInputField constructor called !!\033[0m" << std::endl;
+    //std::cout << "\033[1;35mInputField constructor called !!\033[0m" << std::endl;
 }
 
 InputField::~InputField()
@@ -123,4 +123,8 @@ void InputField::display(sf::RenderWindow* win, float timer)
 {
     update(win, timer);
     render(win, timer);
+}
+
+void InputField::setTextColor(sf::Color color) {
+    Button::setTextColor(color);
 }

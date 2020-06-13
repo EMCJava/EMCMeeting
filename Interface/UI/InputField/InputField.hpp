@@ -43,6 +43,8 @@ public:
      *Update and Render the input field
     */
     void display(sf::RenderWindow* win, float timer = 0);
+
+    void setTextColor(sf::Color color);
 };
 
 #endif

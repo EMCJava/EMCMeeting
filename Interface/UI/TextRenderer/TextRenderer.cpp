@@ -4,27 +4,22 @@ std::map<std::string, sf::Font> TextRenderer::fonts_;
 sf::Text TextRenderer::render_text;
 
 TextRenderer::TextRenderer(sf::Vector2f position)
-    : UI(position)
-{
-    std::cout << "\033[1;35mTextRenderer constructor called !!\033[0m" << std::endl;
+        : UI(position) {
+    //std::cout << "\033[1;35mTextRenderer constructor called !!\033[0m" << std::endl;
 }
 
 TextRenderer::TextRenderer(float loca_x, float loca_y)
-    : TextRenderer::TextRenderer(sf::Vector2f { loca_x, loca_y })
-{
+        : TextRenderer::TextRenderer(sf::Vector2f{loca_x, loca_y}) {
 }
 
-TextRenderer::~TextRenderer()
-{
+TextRenderer::~TextRenderer() {
 }
 
-bool TextRenderer::_font_exists(const std::string font_name)
-{
+bool TextRenderer::_font_exists(const std::string font_name) {
     return fonts_.find(font_name) != fonts_.end();
 }
 
-void TextRenderer::packSFText(std::string id, sf::Text& text)
-{
+void TextRenderer::packSFText(std::string id, sf::Text &text) {
     std::wstring text_str;
     std::string font_name;
     int text_size, text_loca_x, text_loca_y, alignment_x, alignment_y;
@@ -36,8 +31,7 @@ void TextRenderer::packSFText(std::string id, sf::Text& text)
     text.setPosition(static_cast<float>(text_loca_x + alignment_x), static_cast<float>(text_loca_y + alignment_y));
 }
 
-bool TextRenderer::addFont(std::string font_path, std::string font_name)
-{
+bool TextRenderer::addFont(std::string font_path, std::string font_name) {
     if (_font_exists(font_name)) {
         return true;
     }
@@ -51,8 +45,7 @@ bool TextRenderer::addFont(std::string font_path, std::string font_name)
     return true;
 }
 
-const sf::Font* const TextRenderer::getFont(std::string font_name)
-{
+const sf::Font *const TextRenderer::getFont(std::string font_name) {
     if (!_font_exists(font_name)) {
         return nullptr;
     }
@@ -60,24 +53,23 @@ const sf::Font* const TextRenderer::getFont(std::string font_name)
     return &(fonts_[font_name]);
 }
 
-bool TextRenderer::addText(std::string id, std::string text, std::string font_name, int font_size, int loca_x, int loca_y)
-{
+bool
+TextRenderer::addText(std::string id, std::string text, std::string font_name, int font_size, int loca_x, int loca_y) {
     return this->addText(id, std::wstring(text.begin(), text.end()), font_name, font_size, loca_x, loca_y);
 }
 
-bool TextRenderer::addText(std::string id, std::wstring text, std::string font_name, int font_size, int loca_x, int loca_y)
-{
+bool
+TextRenderer::addText(std::string id, std::wstring text, std::string font_name, int font_size, int loca_x, int loca_y) {
     if (!this->_font_exists(font_name) || texts_.find(id) != texts_.end()) {
         return false;
     }
 
-    texts_[id] = { text, font_name, font_size, loca_x, loca_y, 0, 0 };
+    texts_[id] = {text, font_name, font_size, loca_x, loca_y, 0, 0};
 
     return true;
 }
 
-bool TextRenderer::removeText(std::string id)
-{
+bool TextRenderer::removeText(std::string id) {
     if (texts_.find(id) == texts_.end()) {
         return false;
     }
@@ -87,13 +79,11 @@ bool TextRenderer::removeText(std::string id)
     return true;
 }
 
-bool TextRenderer::setText(std::string id, std::string text)
-{
+bool TextRenderer::setText(std::string id, std::string text) {
     return this->setText(id, std::wstring(text.begin(), text.end()));
 }
 
-bool TextRenderer::setText(std::string id, std::wstring text)
-{
+bool TextRenderer::setText(std::string id, std::wstring text) {
     if (texts_.find(id) == texts_.end()) {
         return false;
     }
@@ -103,8 +93,7 @@ bool TextRenderer::setText(std::string id, std::wstring text)
     return true;
 }
 
-std::wstring TextRenderer::getText(std::string id) const
-{
+std::wstring TextRenderer::getText(std::string id) const {
     if (texts_.find(id) == texts_.end()) {
         return L"";
     }
@@ -112,9 +101,8 @@ std::wstring TextRenderer::getText(std::string id) const
     return std::get<0>(texts_.at(id));
 }
 
-void TextRenderer::render(sf::RenderWindow* win)
-{
-    render_text.setFillColor(sf::Color::Red);
+void TextRenderer::render(sf::RenderWindow *win) {
+    render_text.setFillColor(m_text_color);
     render_text.setOrigin(-position_.x, -position_.y);
 
     /*
@@ -139,8 +127,7 @@ void TextRenderer::render(sf::RenderWindow* win)
     }
 }
 
-void TextRenderer::alignText(std::string id)
-{
+void TextRenderer::alignText(std::string id) {
     if (texts_.find(id) == texts_.end()) {
         return;
     }
@@ -152,4 +139,9 @@ void TextRenderer::alignText(std::string id)
 
     std::get<5>(texts_.at(id)) = -(textRect.left + textRect.width / 2.0f);
     std::get<6>(texts_.at(id)) = -(textRect.top + textRect.height / 2.0f);
+}
+
+void TextRenderer::setTextColor(sf::Color color) {
+
+    m_text_color = color;
 }

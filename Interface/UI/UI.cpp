@@ -3,7 +3,7 @@
 UI::UI(sf::Vector2f position)
     : position_(position)
 {
-    std::cout << "\033[1;35mUI constructor called !!\033[0m" << std::endl;
+    //std::cout << "\033[1;35mUI constructor called !!\033[0m" << std::endl;
 }
 
 void UI::setPosition(sf::Vector2f position)
