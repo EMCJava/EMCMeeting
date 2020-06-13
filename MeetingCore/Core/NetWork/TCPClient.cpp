@@ -37,11 +37,11 @@ TCPClient::TCPClient(std::string server_ip, int port) {
     connect(server_ip, port);
 }
 
-void TCPClient::connect(std::string server_ip, int port) {
-    connect(inet_addr(server_ip.c_str()), port);
+int TCPClient::connect(std::string server_ip, int port) {
+    return connect(inet_addr(server_ip.c_str()), port);
 }
 
-void TCPClient::connect(in_addr_t server_ip, int port) {
+int TCPClient::connect(in_addr_t server_ip, int port) {
 
     struct sockaddr_in info{};
     std::memset(&info, 0, sizeof(info));
@@ -52,9 +52,13 @@ void TCPClient::connect(in_addr_t server_ip, int port) {
 
     if (::connect(sockfd, (struct sockaddr *) &info, sizeof(info)) == -1) {
         std::cerr << "Connection error" << std::endl;
+
+        return -1;
     }
 
     connected_ = true;
+
+    return 0;
 }
 
 void TCPClient::SetUp() {
