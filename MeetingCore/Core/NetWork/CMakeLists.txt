@@ -1,9 +1,9 @@
-add_library(tcp_server
+add_library(TCPServerlib
             TCPServer.cpp
             TCPServer.hpp)
 
-add_library(tcp_client
+add_library(TCPClientlib
             TCPClient.cpp
             TCPClient.hpp)
 
-target_link_libraries(tcp_client tcp_server)
+target_link_libraries(TCPClientlib TCPServerlib)

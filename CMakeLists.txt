@@ -17,9 +17,20 @@ target_link_libraries(EMCWindowlib ${SFML_LIBRARIES} ${SFML_DEPENDENCIES} )
 target_link_libraries(UserLoginWindowlib Buttonlib)
 target_link_libraries(UserLoginWindowlib InputFieldlib)
 
+target_link_libraries(HosterServerlib TCPServerlib)
+target_link_libraries(HosterServerlib UserDataBaselib)
+
+target_link_libraries(UserClientlib TCPClientlib)
+
 target_link_libraries(EMCMeetinglib EMCWindowlib)
 target_link_libraries(EMCMeetinglib AccountDatalib)
 target_link_libraries(EMCMeetinglib UserLoginWindowlib)
+target_link_libraries(EMCMeetinglib UserAskWhetherHosterWindowlib)
+target_link_libraries(EMCMeetinglib UserClientAskHosterIPAndPortWindowlib)
+target_link_libraries(EMCMeetinglib HosterServerlib)
+target_link_libraries(EMCMeetinglib DataCollectorlib)
+target_link_libraries(EMCMeetinglib ErrorWindowlib)
+target_link_libraries(EMCMeetinglib UserClientlib)
 
 # Main executable file
 add_executable(EMCMeeting main.cpp)

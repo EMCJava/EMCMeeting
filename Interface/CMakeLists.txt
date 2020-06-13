@@ -1,2 +1,6 @@
 add_subdirectory(Window)
 add_subdirectory(UI)
+add_subdirectory(UserLoginWindow)
+add_subdirectory(UserAskWhetherHosterWindow)
+add_subdirectory(UserClientAskHosterIPAndPortWindow)
+add_subdirectory(ErrorWindow)

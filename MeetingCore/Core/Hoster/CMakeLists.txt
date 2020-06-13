@@ -1,0 +1,3 @@
+add_subdirectory(DataCollector)
+add_subdirectory(HosterServer)
+add_subdirectory(UserDataBase)
