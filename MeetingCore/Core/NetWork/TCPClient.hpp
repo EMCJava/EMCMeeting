@@ -27,6 +27,8 @@ public:
     int connect(in_addr_t server_ip, int port);
 
     void SetUp();
+
+    int GetFD();
 };
 
 

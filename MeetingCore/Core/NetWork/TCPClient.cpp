@@ -72,3 +72,7 @@ void TCPClient::SetUp() {
         sockfd = EmptySock();
     }
 }
+
+int TCPClient::GetFD() {
+    return TCPServer::GetFD();
+}
