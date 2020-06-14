@@ -33,6 +33,8 @@ public:
     bool Update() override ;
 
     bool IsOnFocus();
+
+    void SetTitle(std::string str);
 };
 
 

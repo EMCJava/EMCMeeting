@@ -73,3 +73,9 @@ bool Window::IsOpen() const {
 bool Window::IsOnFocus() {
     return m_app->hasFocus();
 }
+
+void Window::SetTitle(std::string str) {
+
+    m_app->setTitle(str);
+
+}
