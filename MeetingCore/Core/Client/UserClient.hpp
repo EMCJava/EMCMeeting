@@ -7,6 +7,8 @@
 
 #include <string>
 #include <memory>
+#include <thread>
+#include <deque>
 
 #include "../../../ToolBox/Constant.hpp"
 #include "../AccountData/AccountData.hpp"
@@ -14,6 +16,9 @@
 #include "../Hoster/DataCollector/DataCollector.hpp"
 
 #include "../../../ToolBox/ToolBox.hpp"
+
+// Network
+#include <sys/epoll.h>
 #include "../NetWork/TCPClient.hpp"
 
 
@@ -21,14 +26,30 @@ class UserClient {
 
 private:
 
+    // send & recv & accept client thread
+    bool m_listen_stop = false;
+    std::unique_ptr<std::thread> m_listen_thread;
+
     // the Tcp client class, the connection between hoster and user
     std::unique_ptr<TCPClient> m_tcp_client;
 
     bool m_has_connect_server = false;
 
+    // store all the message from server
+    std::deque<Socket::Message> m_server_message;
+
+    /*
+     *
+     *  loop to recv message from server till m_listen_stop equal true
+     *
+     */
+    void Start_();
+
+    void MessageHandle_();
 public:
 
     UserClient(std::string server_ip, int port);
+    ~UserClient();
 
     bool HasConnect();
 
@@ -39,6 +60,13 @@ public:
      */
     bool login(AccountData &accountData);
 
+    /*
+     *
+     *  Start a thread to recv all message from server
+     *
+     */
+    void Start();
+
     void logout();
 
     /*
@@ -48,6 +76,7 @@ public:
     */
     void SendAccountDataToServer_(AccountData &accountData);
 
+    void Update();
 };
 
 
