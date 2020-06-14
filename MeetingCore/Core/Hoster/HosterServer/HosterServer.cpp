@@ -26,8 +26,11 @@ void HosterServer::Start() {
 
     if (m_listen_thread) {
 
-        return;
+        // thread has not ended
+        if (m_listen_thread->joinable()) {
 
+            return;
+        }
     }
 
     m_tcp_server->listen(m_max_client);
@@ -72,7 +75,7 @@ void HosterServer::Start_(int max_client) {
         }
 
         // time out limit since we need to check m_listen_stop
-        struct timeval tv{1, 0};
+        struct timeval tv{0, 100000/* 0.1 second */};
 
         auto activity = select(max_sd + 1, &readfds, nullptr, nullptr, &tv);
         //ToolBox::log() << "Start select for one second, got : " << activity << std::endl;
@@ -203,7 +206,6 @@ void HosterServer::MessageHandle_() {
     if (m_client_message.empty()) {
 
         return;
-
     }
 
     // get the first message from the front
@@ -289,4 +291,30 @@ void HosterServer::ResetClient_(HosterServer::Client &client) {
     client.sockfd = Socket::EmptySock();
     client.has_login = false;
 
+}
+
+HosterServer::~HosterServer() {
+    m_listen_stop = true;
+
+    Socket::Message mes;
+    mes.mes.resize(1, Constant::frag_user_leave);
+
+    for (auto &client : m_clients) {
+
+        if (client.sockfd == Socket::EmptySock()) {
+            continue;
+        }
+
+        // tell all client, server is leaving
+        m_tcp_server->send(client.sockfd, mes);
+    }
+
+    if (m_listen_thread) {
+
+        // thread has not ended
+        if (m_listen_thread->joinable()) {
+
+            m_listen_thread->join();
+        }
+    }
 }

@@ -82,6 +82,7 @@ private:
 public:
 
     explicit HosterServer(unsigned int max_client);
+    ~HosterServer();
 
     void Start();
 
