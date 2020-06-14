@@ -16,6 +16,12 @@ int TCPServer::receive(int targetfd, Socket::Message &message) {
     int result;
     if ((result = receive(targetfd, size_info_size, size_info)) != size_info_size) {
 
+        if(result == 0){
+
+            std::cout << "Socket Closed, no data received." << std::endl;
+            return 0;
+        }
+
         std::cerr << "Failed to fetch mes size" << std::endl;
         return result;
 
@@ -88,7 +94,7 @@ int TCPServer::send(int targetfd, Socket::Message &message) {
 
     const auto message_size = message.mes.size();
 
-    std::memcpy(size_info, reinterpret_cast<const void *>(&message_size), size_info_size);
+    std::memcpy(size_info, reinterpret_cast<const char *>(&message_size), size_info_size);
     if (::send(targetfd, size_info, size_info_size, 0) != size_info_size) {
         std::cerr << "Failed to send mes size" << std::endl;
         return -1;
