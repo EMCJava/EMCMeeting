@@ -99,9 +99,6 @@ void UserDataBase::ReadFile_(const std::string &database_file_path) {
                             break;
                     }
 
-                    //remove user name
-                    arr.erase(arr.begin(), arr.begin() + j);
-
                     //remove '\'' or '\"' from beginning
                     user_name = user_name.substr(1);
 
@@ -110,6 +107,8 @@ void UserDataBase::ReadFile_(const std::string &database_file_path) {
                         user_name.pop_back();
                     }
 
+                    //remove user name
+                    arr.erase(arr.begin(), arr.begin() + j + 1);
                 }
 
             } else {
