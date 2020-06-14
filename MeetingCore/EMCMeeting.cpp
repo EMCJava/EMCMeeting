@@ -12,6 +12,16 @@ EMCMeeting::EMCMeeting(int max_client) {
 
     m_main_window = ToolBox::make_unique<Window>(false, 800, 600);
 
+    if (m_hoster_server) {
+
+        m_main_window->SetTitle("EMCMeeting - Hoster");
+
+    } else if (m_user_client) {
+
+        m_main_window->SetTitle("EMCMeeting - Client");
+
+    }
+
     // reset the active timer once the window open
     ResetFocusTimer_();
 
@@ -31,9 +41,9 @@ bool EMCMeeting::Update() {
     }
 
     if (!m_main_window->Update()) {
-#warning for server debug
-        if (m_hoster_server)
-            return true;
+//#warning for server debug
+        //if (m_hoster_server)
+        //return true;
 
         ToolBox::err() << "Window was closed, unable to update" << std::endl;
 
@@ -59,7 +69,7 @@ bool EMCMeeting::AccountLogIn_(bool *isCancel) {
     // wait till window had closed, which means user has finished filling in their user data
     while (loginWindow.Update());
 
-    if(isCancel && loginWindow.IsCancel()){
+    if (isCancel && loginWindow.IsCancel()) {
         *isCancel = true;
 
         return false;
@@ -70,6 +80,17 @@ bool EMCMeeting::AccountLogIn_(bool *isCancel) {
 
     m_user_account_data = ToolBox::make_unique<AccountData>(username, password);
     m_user_account_data->m_begin_meeting_time = std::chrono::system_clock::now();
+
+    // if server somehow disconnected
+    if (!m_user_client->HasConnect()) {
+        WinError_("Server disconnected");
+
+        if (isCancel) {
+            *isCancel = true;
+        }
+
+        return false;
+    }
 
     // try to log in
     if (!m_user_client->login(*m_user_account_data)) {
@@ -205,13 +226,15 @@ bool EMCMeeting::ConnectToHoster_(bool *isCancel) {
         has_connect = m_user_client->HasConnect();
     } while (!has_connect);
 
+    m_user_client->Start();
+
     bool is_cancel = false;
-    while (!AccountLogIn_(&is_cancel)){
-        if(is_cancel) {
+    while (!AccountLogIn_(&is_cancel)) {
+        if (is_cancel) {
 
             m_user_client.reset();
 
-            // go back to previous stage (enter ip and port)
+            // go back to previous stage (enter ip and port), it will disconnect to current server
             return ConnectToHoster_(isCancel);
 
         }
@@ -233,8 +256,6 @@ void EMCMeeting::UserSetup_(int max_client) {
 
     if (user_type == UserAskWhetherHosterWindow::UserType::Client) {
 
-        ToolBox::log() << " as a Client" << std::endl;
-
         bool is_cancel = false;
         ConnectToHoster_(&is_cancel);
 
@@ -245,8 +266,6 @@ void EMCMeeting::UserSetup_(int max_client) {
         }
 
     } else if (user_type == UserAskWhetherHosterWindow::UserType::Hoster) {
-
-        ToolBox::log() << " as a Hoster" << std::endl;
 
         m_hoster_server = ToolBox::make_unique<HosterServer>(max_client);
         m_hoster_server->Start();
