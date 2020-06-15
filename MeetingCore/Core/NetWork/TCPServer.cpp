@@ -79,14 +79,14 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
         std::string data_left_str = std::to_string(size - data_received);
         data_left_str.resize(size_str.size(), ' ');
 
-        std::cout << "\rreceived : " << data_received_str << " bytes, " << data_left_str << " bytes to go." << std::flush;
+        //std::cout << "\rreceived : " << data_received_str << " bytes, " << data_left_str << " bytes to go." << std::flush;
 
         if (data_received >= size) {
             break;
         }
     }
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
     return data_received;
 }
 
@@ -124,8 +124,8 @@ int TCPServer::send(int targetfd, Socket::Message &message) {
 
         message_sent += result;
 
-        std::cout << "sent : " << message_sent << " bytes, " << message_size - message_sent << " bytes to go."
-                  << std::endl;
+        //std::cout << "sent : " << message_sent << " bytes, " << message_size - message_sent << " bytes to go."
+        //          << std::endl;
 
         if (message_sent >= message_size) {
             break;
