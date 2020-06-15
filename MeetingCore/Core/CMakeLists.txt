@@ -1,4 +1,5 @@
 add_subdirectory(AccountData)
+add_subdirectory(MessagePackage)
 add_subdirectory(Client)
 add_subdirectory(Hoster)
 add_subdirectory(NetWork)

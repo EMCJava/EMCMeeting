@@ -13,12 +13,14 @@ include_directories( PUBLIC ${SFML_INCLUDE_DIRS})
 
 # Link SFML and dependencies
 target_link_libraries(EMCWindowlib ${SFML_LIBRARIES} ${SFML_DEPENDENCIES} )
+target_link_libraries(EMCWindowlib ImageRendererlib )
 
 target_link_libraries(UserLoginWindowlib Buttonlib)
 target_link_libraries(UserLoginWindowlib InputFieldlib)
 
 target_link_libraries(HosterServerlib TCPServerlib)
 target_link_libraries(HosterServerlib UserDataBaselib)
+target_link_libraries(HosterServerlib MessagePackagelib)
 
 target_link_libraries(UserClientlib TCPClientlib)
 
@@ -35,3 +37,4 @@ target_link_libraries(EMCMeetinglib UserClientlib)
 # Main executable file
 add_executable(EMCMeeting main.cpp)
 target_link_libraries(EMCMeeting EMCMeetinglib)
+
