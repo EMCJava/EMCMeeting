@@ -142,7 +142,7 @@ void UserClient::Start_() {
         ListenUnLock();
 
         // for other thread to take over the lock if necessary
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
