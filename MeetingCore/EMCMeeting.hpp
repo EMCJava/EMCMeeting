@@ -31,7 +31,7 @@ class EMCMeeting {
 
 private:
 
-    std::unique_ptr<Window> m_main_window;
+    std::unique_ptr<EMCWindow> m_main_window;
     std::unique_ptr<AccountData> m_user_account_data;
 
     /*

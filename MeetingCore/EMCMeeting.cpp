@@ -10,7 +10,7 @@ EMCMeeting::EMCMeeting(int max_client) {
 
     UserSetup_(max_client);
 
-    m_main_window = ToolBox::make_unique<Window>(false, 800, 600);
+    m_main_window = ToolBox::make_unique<EMCWindow>(false, 800, 600);
 
     if (m_hoster_server) {
 
@@ -46,7 +46,7 @@ bool EMCMeeting::Update() {
         //if (m_hoster_server)
         //return true;
 
-        ToolBox::err() << "Window was closed, unable to update" << std::endl;
+        ToolBox::err() << "EMCWindow was closed, unable to update" << std::endl;
 
         // if is a client
         if (m_user_client) {
@@ -232,7 +232,7 @@ bool EMCMeeting::ConnectToHoster_(bool *isCancel) {
         has_connect = m_user_client->HasConnect();
     } while (!has_connect);
 
-    m_user_client->Start();
+    //m_user_client->Start();
 
     bool is_cancel = false;
     while (!AccountLogIn_(&is_cancel)) {
@@ -245,6 +245,9 @@ bool EMCMeeting::ConnectToHoster_(bool *isCancel) {
 
         }
     }
+
+    m_user_client->Start();
+
 
     return true;
 }
