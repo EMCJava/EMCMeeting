@@ -17,6 +17,16 @@
 #include "../../NetWork/Socket.hpp"
 #include "../../NetWork/TCPServer.hpp"
 
+#ifdef __linux__
+
+#include <sys/epoll.h>
+
+#else
+
+#error sys/epoll.h is for linux
+
+#endif
+
 // hoster can collect the active data from user
 #include "../UserDataBase/UserDataBase.hpp"
 #include "../DataCollector/DataCollector.hpp"
@@ -61,11 +71,11 @@ private:
     struct ClientMessage {
 
         Socket::Message mes;
-        int client_index = -1;
+        int client_fd = -1;
 
-        ClientMessage(Socket::Message &&message, int index) {
+        ClientMessage(Socket::Message &&message, int fd) {
             mes = std::move(message);
-            client_index = index;
+            client_fd = fd;
         }
     };
 

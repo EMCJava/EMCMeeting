@@ -43,112 +43,133 @@ void HosterServer::Start_(int max_client) {
     static constexpr auto microseconds_to_second_ratio = (float) std::chrono::microseconds::period::num /
                                                          std::chrono::microseconds::period::den;
 
-    fd_set readfds;
+    // + 1 for server itself
+    const auto max_epoll_size = max_client + 1;
 
-    int sock_fd = m_tcp_server->GetFD(), max_sd, sd, new_socket;
+    const int sock_fd = m_tcp_server->GetFD();
+    int max_sd, sd, new_socket;
     Socket::Message mes;
 
     struct sockaddr_in address{};
     socklen_t addrlen = 0;
 
+    struct epoll_event ev{};
+    std::vector<epoll_event> events;
+
+    // + 1 for server itself
+    events.resize(max_epoll_size);
+
+    int kdpfd = epoll_create(max_epoll_size);
+    ev.events = EPOLLIN;
+    ev.data.fd = sock_fd;
+    if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, sock_fd, &ev) < 0) {
+        ToolBox::err() << "epoll set insertion error: fd = " << sock_fd << std::endl;
+        ToolBox::err() << "Stop listening client message" << sock_fd << std::endl;
+        return;
+    }
+
+    int curfds = 1;
+
     while (!m_listen_stop) {
 
-        //clear the socket set
-        FD_ZERO(&readfds);
+        auto nfds = epoll_wait(kdpfd, events.data(), curfds, 1000/*timeout*/);
+        //ToolBox::log() << "Start epoll_wait for one second, got : " << nfds << std::endl;
 
-        //add server socket to set
-        FD_SET(sock_fd, &readfds);
-        max_sd = sock_fd;
-
-        //add client sockets to set
-        for (auto client : m_clients) {
-            //socket descriptor
-            sd = client.sockfd;
-
-            //if valid socket descriptor then add to read list
-            if (sd != Socket::EmptySock())
-                FD_SET(sd, &readfds);
-
-            //highest file descriptor number, need it for the select function
-            if (sd > max_sd)
-                max_sd = sd;
+        if (nfds == -1) {
+            ToolBox::err() << "epoll_wait error" << std::endl;
+            continue;
         }
 
-        // time out limit since we need to check m_listen_stop
-        struct timeval tv{0, 100000/* 0.1 second */};
+        // loop all event
+        for (int n = 0; n < nfds; ++n) {
+            // is server has input stream
+            if (events[n].data.fd == sock_fd) {
 
-        auto activity = select(max_sd + 1, &readfds, nullptr, nullptr, &tv);
-        ToolBox::log() << "Start select for 0.1 second, got : " << activity << std::endl;
+                if ((new_socket = m_tcp_server->accept()) < 0) {
+                    ToolBox::err() << "Can't accept client, check your connection" << std::endl;
 
-        if ((activity < 0) && (errno != EINTR)) {
-            ToolBox::err() << "select error" << std::endl;
-        }
+                    continue;
+                }
 
-        if (FD_ISSET(sock_fd, &readfds)) {
-            if ((new_socket = m_tcp_server->accept()) < 0) {
-                ToolBox::err() << "Can't accept client, check your connection" << std::endl;
+                ToolBox::log() << "Found a new client" << std::endl;
 
+                bool has_added_client = false;
+
+                //add new socket to array of sockets
+                for (auto &client : m_clients) {
+                    //if position is empty
+                    if (client.sockfd == Socket::EmptySock()) {
+                        client.sockfd = new_socket;
+                        client.has_login = false;
+                        client.connect_time_point = std::chrono::system_clock::now();
+
+                        ToolBox::log() << "New client adding to list of sockets as sockfd " << client.sockfd
+                                       << std::endl;
+                        has_added_client = true;
+                        break;
+                    }
+                }
+
+                // dont have space for new client
+                if (!has_added_client) {
+
+                    mes.mes.assign(Constant::server_disconnect_full,
+                                   Constant::server_disconnect_full + sizeof(Constant::server_disconnect_full));
+
+                    // stop client from keep connecting
+                    m_tcp_server->send(new_socket, mes);
+
+                    close(new_socket);
+
+                    continue;
+                }
+
+                ev.events = EPOLLIN;
+                ev.data.fd = new_socket;
+                if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, new_socket, &ev) < 0) {
+                    ToolBox::err() << "add socket " << new_socket << " to epoll failed: " << strerror(errno)
+                                   << std::endl;
+
+                    return;
+                }
+                curfds++;
                 continue;
             }
 
-            ToolBox::log() << "Found a new client" << std::endl;
+            //else its some IO operation on some other socket
+            sd = events[n].data.fd;
 
-            bool has_added_client = false;
+            //Check if it was for closing , and also read the
+            //incoming message
 
-            //add new socket to array of sockets
-            for (auto &client : m_clients) {
-                //if position is empty
-                if (client.sockfd == Socket::EmptySock()) {
-                    client.sockfd = new_socket;
-                    client.has_login = false;
-                    client.connect_time_point = std::chrono::system_clock::now();
+            int result;
+            if ((result = m_tcp_server->receive(sd, mes)) == 0 && result == -1) {
+                //Somebody disconnected , get his details and print
+                getpeername(sd, (struct sockaddr *) &address,
+                            (socklen_t *) &addrlen);
 
-                    ToolBox::log() << "New client adding to list of sockets as sockfd " << client.sockfd
-                                   << std::endl;
-                    has_added_client = true;
-                    break;
-                }
+                auto remove_target_client = std::find_if(m_clients.begin(), m_clients.end(),
+                                                         [sd](HosterServer::Client &client) -> bool {
+                                                             return client.sockfd == sd;
+                                                         });
+
+                ToolBox::log() << "Host disconnected , ip " << inet_ntoa(address.sin_addr) <<
+                               " , port " << ntohs(address.sin_port) <<
+                               " , user " << remove_target_client->name << std::endl;
+
+                //Close the socket and mark as Socket::EmptySock() in list for reuse
+
+                ResetClient_(*remove_target_client);
+
+                epoll_ctl(kdpfd, EPOLL_CTL_DEL, events[n].data.fd, &ev);
+                curfds--;
+            } else { // we get a message !
+                ToolBox::log() << "We get a message from " << sd << " with size [" << mes.mes.size() << "]"
+                               << std::endl;
+
+                m_client_message.emplace_back(std::move(mes), sd);
             }
 
-            // dont have space for new client
-            if (!has_added_client) {
-
-                mes.mes.assign(Constant::server_disconnect_full,
-                               Constant::server_disconnect_full + sizeof(Constant::server_disconnect_full));
-
-                // stop client from keep connecting
-                m_tcp_server->send(new_socket, mes);
-
-                close(new_socket);
-            }
-
-        }
-
-        //else its some IO operation on some other socket
-        for (int i = 0; i < m_clients.size(); ++i) {
-            sd = m_clients[i].sockfd;
-
-            if (FD_ISSET(sd, &readfds)) {
-                //Check if it was for closing , and also read the
-                //incoming message
-                if (m_tcp_server->receive(sd, mes) == 0) {
-                    //Somebody disconnected , get his details and print
-                    getpeername(sd, (struct sockaddr *) &address,
-                                (socklen_t *) &addrlen);
-
-                    ToolBox::log() << "Host disconnected , ip " << inet_ntoa(address.sin_addr) <<
-                                   " , port " << ntohs(address.sin_port) <<
-                                   " , user " << m_clients[i].name << std::endl;
-
-                    //Close the socket and mark as Socket::EmptySock() in list for reuse
-                    ResetClient_(m_clients[i]);
-                } else {
-                    ToolBox::log() << "We get a message from " << sd << " as [" << mes.mes.data() << "]"
-                                   << std::endl;
-
-                    m_client_message.emplace_back(std::move(mes), i);
-                }
-            }
         }
 
         const auto current_time = std::chrono::system_clock::now();
@@ -184,7 +205,11 @@ void HosterServer::Start_(int max_client) {
                 m_tcp_server->send(new_socket, mes);
 
                 // close socket and reset
+
+                epoll_ctl(kdpfd, EPOLL_CTL_DEL, client.sockfd, &ev);
+                curfds--;
                 ResetClient_(client);
+
             }
         }
 
@@ -212,7 +237,11 @@ void HosterServer::MessageHandle_() {
     auto client_message = std::move(m_client_message.front());
     m_client_message.pop_front();
 
-    auto &client = m_clients[client_message.client_index];
+    int client_fd = client_message.client_fd;
+    auto client_it = std::find_if(m_clients.begin(), m_clients.end(),
+                                             [client_fd](HosterServer::Client &client) -> bool {
+                                                 return client.sockfd == client_fd;
+                                             });
 
     switch (client_message.mes.mes[0]) {
 
@@ -230,30 +259,30 @@ void HosterServer::MessageHandle_() {
             // format username + spilt_pos + password
             const auto spilt_pos = pure_data.find(Constant::data_spilt);
 
-            client.name = pure_data.substr(0, spilt_pos);
-            client.password = pure_data.substr(spilt_pos + 1);
+            client_it->name = pure_data.substr(0, spilt_pos);
+            client_it->password = pure_data.substr(spilt_pos + 1);
 
-            if (client.password.back() == '\0') {
-                client.password.pop_back();
+            if (client_it->password.back() == '\0') {
+                client_it->password.pop_back();
             }
 
             //check if is user name and password is available
-            bool account_exist = m_user_data_base->UserAllowLogin(client.name, client.password);
+            bool account_exist = m_user_data_base->UserAllowLogin(client_it->name, client_it->password);
 
             const auto &message = account_exist ? Constant::positive_message
                                                 : Constant::negative_message;
 
             // give feedback to client
             client_message.mes.mes.assign(message, message + sizeof(message));
-            m_tcp_server->send(client.sockfd, client_message.mes);
+            m_tcp_server->send(client_it->sockfd, client_message.mes);
 
             // give user feedback
-            ToolBox::log() << "Account " << client.name << " " << message << std::endl;
+            ToolBox::log() << "Account " << client_it->name << " " << message << std::endl;
 
-            client.has_login = account_exist;
+            client_it->has_login = account_exist;
 
 #warning testing image
-            if(account_exist){
+            if (account_exist) {
 
                 Socket::Message image_message;
                 sf::Image im;
@@ -269,7 +298,7 @@ void HosterServer::MessageHandle_() {
 
                 image_message.mes.insert(image_message.mes.begin(), Constant::frag_image_jpg_file);
 
-                m_tcp_server->send(client.sockfd, image_message);
+                m_tcp_server->send(client_it->sockfd, image_message);
             }
 
         }
@@ -286,8 +315,8 @@ void HosterServer::MessageHandle_() {
                             .substr(1);
 
 
-            m_data_collector->m_clients_data[client.name] = DataCollector::DecodeMessageData(pure_data);
-            ToolBox::log() << "User " << client.name << " sending account data , updating client account data."
+            m_data_collector->m_clients_data[client_it->name] = DataCollector::DecodeMessageData(pure_data);
+            ToolBox::log() << "User " << client_it->name << " sending account data , updating client account data."
                            << std::endl;
 
         }
@@ -296,8 +325,8 @@ void HosterServer::MessageHandle_() {
 
         case Constant::frag_user_leave: {
 
-            ToolBox::log() << "User " << client.name << " leave , resetting client data." << std::endl;
-            ResetClient_(client);
+            ToolBox::log() << "User " << client_it->name << " leave , resetting client data." << std::endl;
+            ResetClient_(*client_it);
 
         }
 
