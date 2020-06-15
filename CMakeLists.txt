@@ -21,6 +21,7 @@ target_link_libraries(UserLoginWindowlib InputFieldlib)
 target_link_libraries(HosterServerlib TCPServerlib)
 target_link_libraries(HosterServerlib UserDataBaselib)
 target_link_libraries(HosterServerlib MessagePackagelib)
+target_link_libraries(HosterServerlib ScreenShotlib)
 
 target_link_libraries(UserClientlib TCPClientlib)
 
