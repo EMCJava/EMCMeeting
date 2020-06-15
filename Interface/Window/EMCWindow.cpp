@@ -20,6 +20,8 @@ Window::Window(bool fullscreen, int screen_size_x, int screen_size_y) {
     }
 
     ChangeWindowsSize_();
+    m_image_renderer = ToolBox::make_unique<ImageRenderer>(sf::Vector2f{0.0f, 0.0f},
+                                                           sf::Vector2f{(float) screen_size_x, (float) screen_size_y});
 }
 
 void Window::ChangeWindowsSize_() {
@@ -61,6 +63,9 @@ bool Window::Update() {
     }
 
     m_app->clear();
+
+    m_image_renderer->render(m_app.get());
+
     m_app->display();
 
     return true;
@@ -77,5 +82,11 @@ bool Window::IsOnFocus() {
 void Window::SetTitle(std::string str) {
 
     m_app->setTitle(str);
+
+}
+
+void Window::SetImage(sf::Image image) {
+
+    m_image_renderer->SetImage(image);
 
 }

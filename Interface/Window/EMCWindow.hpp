@@ -13,12 +13,16 @@
 //for make_unique
 #include "../../ToolBox/ToolBox.hpp"
 
+#include "../UI/ImageRenderer/ImageRenderer.hpp"
+
 class Window : public WindowBase{
 
 private:
 
     // adjust any property the relate to window size
     void ChangeWindowsSize_() override ;
+
+    std::unique_ptr<ImageRenderer> m_image_renderer;
 
     bool m_is_focusing = true;
 
@@ -35,6 +39,8 @@ public:
     bool IsOnFocus();
 
     void SetTitle(std::string str);
+
+    void SetImage(sf::Image image);
 };
 
 
