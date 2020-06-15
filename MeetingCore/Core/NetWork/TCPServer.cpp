@@ -1,7 +1,5 @@
 #include "TCPServer.hpp"
 
-//#include <utility>
-
 int TCPServer::receive(int targetfd, Socket::Message &message) {
     // not for thread to use this function yet, no lock added.
     static constexpr auto size_info_size = sizeof(typeof(message.mes.size()));
@@ -31,7 +29,11 @@ int TCPServer::receive(int targetfd, Socket::Message &message) {
 
     std::memcpy(reinterpret_cast<char *>(&message_size), size_info.data(), size_info_size);
 
-    return receive(targetfd, message_size, message.mes);
+    //std::cout << "We got a message with size " << message_size << std::endl;
+
+    result = receive(targetfd, message_size, message.mes);
+
+    return result;
 }
 
 
@@ -43,6 +45,8 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
         arr.resize(size);
 
     typeof(arr.size()) data_received = 0;
+
+    std::string size_str = std::to_string(size);
 
     while (true) {
         const auto result = ::recv(targetfd, arr.data() + data_received, size - data_received, 0);
@@ -69,14 +73,20 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
 
         data_received += result;
 
-        std::cout << "received : " << data_received << " bytes, " << size - data_received << " bytes to go."
-                  << std::endl;
+        std::string data_received_str =  std::to_string(data_received);
+        data_received_str.resize(size_str.size(), ' ');
+
+        std::string data_left_str = std::to_string(size - data_received);
+        data_left_str.resize(size_str.size(), ' ');
+
+        std::cout << "\rreceived : " << data_received_str << " bytes, " << data_left_str << " bytes to go." << std::flush;
 
         if (data_received >= size) {
             break;
         }
     }
 
+    std::cout << std::endl;
     return data_received;
 }
 
