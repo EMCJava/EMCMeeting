@@ -20,6 +20,7 @@
 // hoster can collect the active data from user
 #include "../UserDataBase/UserDataBase.hpp"
 #include "../DataCollector/DataCollector.hpp"
+#include "../../MessagePackage/MessagePackage.hpp"
 
 class HosterServer {
 

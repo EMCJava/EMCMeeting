@@ -78,7 +78,7 @@ void HosterServer::Start_(int max_client) {
         struct timeval tv{0, 100000/* 0.1 second */};
 
         auto activity = select(max_sd + 1, &readfds, nullptr, nullptr, &tv);
-        //ToolBox::log() << "Start select for one second, got : " << activity << std::endl;
+        ToolBox::log() << "Start select for 0.1 second, got : " << activity << std::endl;
 
         if ((activity < 0) && (errno != EINTR)) {
             ToolBox::err() << "select error" << std::endl;
@@ -214,16 +214,17 @@ void HosterServer::MessageHandle_() {
 
     auto &client = m_clients[client_message.client_index];
 
-    // skip the first character
-    std::string pure_data =
-            std::string(client_message.mes.mes.data(),
-                        client_message.mes.mes.data() +
-                        client_message.mes.mes.size()) // since it might not ends with '\0'
-                    .substr(1);
-
     switch (client_message.mes.mes[0]) {
 
         case Constant::frag_server_login: {
+
+            // skip the first character
+            std::string pure_data =
+                    std::string(client_message.mes.mes.data(),
+                                client_message.mes.mes.data() +
+                                client_message.mes.mes.size()) // since it might not ends with '\0'
+                            .substr(1);
+
 
             // get user name and password data
             // format username + spilt_pos + password
@@ -251,11 +252,39 @@ void HosterServer::MessageHandle_() {
 
             client.has_login = account_exist;
 
+#warning testing image
+            if(account_exist){
+
+                Socket::Message image_message;
+                sf::Image im;
+                im.loadFromFile("resource/testing1.png");
+
+                sf::Image send_im;
+                send_im.create(800, 600);
+                MessagePackage::resizeImage(im, send_im);
+
+                send_im.saveToFile("resource/tem_send.jpg");
+
+                MessagePackage::GenMessage(image_message, "resource/tem_send.jpg");
+
+                image_message.mes.insert(image_message.mes.begin(), Constant::frag_image_jpg_file);
+
+                m_tcp_server->send(client.sockfd, image_message);
+            }
+
         }
 
             break;
 
         case Constant::frag_upload_user_data: {
+
+            // skip the first character
+            std::string pure_data =
+                    std::string(client_message.mes.mes.data(),
+                                client_message.mes.mes.data() +
+                                client_message.mes.mes.size()) // since it might not ends with '\0'
+                            .substr(1);
+
 
             m_data_collector->m_clients_data[client.name] = DataCollector::DecodeMessageData(pure_data);
             ToolBox::log() << "User " << client.name << " sending account data , updating client account data."
