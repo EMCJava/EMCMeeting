@@ -13,6 +13,7 @@ namespace Constant{
 
     constexpr float IDLE_KICK_TIME_SECOND = 120;
     constexpr int SOCKET_PORT = 20546;
+    constexpr float SCREEN_SHOT_DELAY = 0.05f;
 
     static const char positive_message[] = "ACCEPTED";
     static const char negative_message[] = "REJECTED";
@@ -29,6 +30,7 @@ namespace Constant{
     static constexpr char frag_image_jpg_file = 'J';
 
     static const char path_user_account_data[] = "Account";
+    static const char path_tem_image_send_file[] = "resource/tem.jpg";
 
 #ifdef USE_STATIC_IP
 
