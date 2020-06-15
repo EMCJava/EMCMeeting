@@ -9,13 +9,17 @@
 #include <memory>
 #include <thread>
 #include <deque>
+#include <mutex>
 
 #include "../../../ToolBox/Constant.hpp"
 #include "../AccountData/AccountData.hpp"
 
 #include "../Hoster/DataCollector/DataCollector.hpp"
+#include "../MessagePackage/MessagePackage.hpp"
 
 #include "../../../ToolBox/ToolBox.hpp"
+
+#include "../../EMCMeeting.hpp"
 
 // Network
 #include <sys/epoll.h>
@@ -26,9 +30,13 @@ class UserClient {
 
 private:
 
+    EMCMeeting* m_meeting_core = nullptr;
+
     // send & recv & accept client thread
     bool m_listen_stop = false;
     std::unique_ptr<std::thread> m_listen_thread;
+
+    std::mutex m_listen_thread_mutex;
 
     // the Tcp client class, the connection between hoster and user
     std::unique_ptr<TCPClient> m_tcp_client;
@@ -75,6 +83,11 @@ public:
     *
     */
     void SendAccountDataToServer_(AccountData &accountData);
+
+    void SetMeetingCore(EMCMeeting* emcMeeting = nullptr);
+
+    void ListenLock();
+    void ListenUnLock();
 
     void Update();
 };

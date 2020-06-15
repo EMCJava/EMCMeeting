@@ -114,6 +114,7 @@ void UserClient::Start_() {
     epoll_ctl(epfd, EPOLL_CTL_ADD, event.data.fd, &event);
 
     while (!m_listen_stop) {
+        ListenLock();
 
         int number_ready = epoll_wait(epfd, events, MAX_EVENT, 1000/*timeout*/);
 
@@ -131,12 +132,17 @@ void UserClient::Start_() {
                     return;
                 }
 
-                ToolBox::log() << "We get a message from server as [" << mes.mes.data() << "]"
-                               << std::endl;
+                //ToolBox::log() << "We get a message from server with size [" << mes.mes.size() << "]"
+                //               << std::endl;
 
                 m_server_message.emplace_back(std::move(mes));
             }
         }
+
+        ListenUnLock();
+
+        // for other thread to take over the lock if necessary
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 }
 
@@ -170,13 +176,6 @@ void UserClient::MessageHandle_() {
     auto server_message = std::move(m_server_message.front());
     m_server_message.pop_front();
 
-    // skip the first character
-    std::string pure_data =
-            std::string(server_message.mes.data(),
-                        server_message.mes.data() +
-                        server_message.mes.size()) // since it might not ends with '\0'
-                    .substr(1);
-
     switch (server_message.mes[0]) {
 
         case Constant::frag_user_leave: {
@@ -188,10 +187,52 @@ void UserClient::MessageHandle_() {
 
             break;
 
+        case Constant::frag_image: {
+
+
+            server_message.mes.erase(server_message.mes.begin());// delete frag
+
+            sf::Image recv_image;
+            MessagePackage::ReadImage(server_message, recv_image);
+
+            if (m_meeting_core)
+                m_meeting_core->m_main_window->SetImage(recv_image);
+
+        }
+
+        case Constant::frag_image_jpg_file: {
+
+            server_message.mes.erase(server_message.mes.begin());// delete frag
+
+            MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
+            sf::Image recv_image;
+
+            recv_image.loadFromFile("resource/tem_recv.jpg");
+            if (m_meeting_core)
+                m_meeting_core->m_main_window->SetImage(recv_image);
+        }
+
+            break;
+
         default:
             ToolBox::err() << "Unknown message format receive from server. " << std::endl;
 
             break;
 
     }
+}
+
+void UserClient::SetMeetingCore(EMCMeeting *emcMeeting) {
+
+    m_meeting_core = emcMeeting;
+
+}
+
+void UserClient::ListenLock() {
+    m_listen_thread_mutex.lock();
+
+}
+
+void UserClient::ListenUnLock() {
+    m_listen_thread_mutex.unlock();
 }
