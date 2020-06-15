@@ -15,7 +15,9 @@
 
 #include "../UI/ImageRenderer/ImageRenderer.hpp"
 
-class Window : public WindowBase{
+#include <chrono>
+
+class EMCWindow : public WindowBase{
 
 private:
 
@@ -28,7 +30,7 @@ private:
 
 public:
 
-    Window(bool fullscreen, int screen_size_x = 800, int screen_size_y = 600);
+    EMCWindow(bool fullscreen, int screen_size_x = 800, int screen_size_y = 600);
 
     // return true if the current main window is running
     bool IsOpen() const;

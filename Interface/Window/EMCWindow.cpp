@@ -4,9 +4,9 @@
 
 #include "EMCWindow.hpp"
 
-Window::Window(bool fullscreen, int screen_size_x, int screen_size_y) {
+EMCWindow::EMCWindow(bool fullscreen, int screen_size_x, int screen_size_y) {
 
-    ToolBox::log() << "new Window Created !" << std::endl;
+    ToolBox::log() << "new EMCWindow Created !" << std::endl;
 
     if (fullscreen) {
         m_app_size_x = screen_size_x;
@@ -24,11 +24,11 @@ Window::Window(bool fullscreen, int screen_size_x, int screen_size_y) {
                                                            sf::Vector2f{(float) screen_size_x, (float) screen_size_y});
 }
 
-void Window::ChangeWindowsSize_() {
+void EMCWindow::ChangeWindowsSize_() {
 
 }
 
-bool Window::Update() {
+bool EMCWindow::Update() {
 
     if (!IsOpen()) {
         return false;
@@ -71,22 +71,32 @@ bool Window::Update() {
     return true;
 }
 
-bool Window::IsOpen() const {
+bool EMCWindow::IsOpen() const {
     return m_app->isOpen();
 }
 
-bool Window::IsOnFocus() {
+bool EMCWindow::IsOnFocus() {
     return m_app->hasFocus();
 }
 
-void Window::SetTitle(std::string str) {
+void EMCWindow::SetTitle(std::string str) {
 
     m_app->setTitle(str);
 
 }
 
-void Window::SetImage(sf::Image image) {
+void EMCWindow::SetImage(sf::Image image) {
+
+    static auto previous_time = std::chrono::system_clock::now();
+
+    const auto time_passed = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - previous_time).count() *
+                             std::chrono::microseconds::period::num /
+                             std::chrono::microseconds::period::den;
+
+    std::cout << "time_passed : " << time_passed << std::endl;
 
     m_image_renderer->SetImage(image);
+    previous_time = std::chrono::system_clock::now();
 
 }
