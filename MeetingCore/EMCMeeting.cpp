@@ -36,6 +36,7 @@ bool EMCMeeting::Update() {
 
     } else { // otherwise ...
 
+        m_user_client->Update();
         UpdateUserAttentionData_(m_main_window->IsOnFocus());
 
     }
@@ -81,6 +82,8 @@ bool EMCMeeting::AccountLogIn_(bool *isCancel) {
     m_user_account_data = ToolBox::make_unique<AccountData>(username, password);
     m_user_account_data->m_begin_meeting_time = std::chrono::system_clock::now();
 
+    m_user_client->ListenLock();
+
     // if server somehow disconnected
     if (!m_user_client->HasConnect()) {
         WinError_("Server disconnected");
@@ -95,12 +98,15 @@ bool EMCMeeting::AccountLogIn_(bool *isCancel) {
     // try to log in
     if (!m_user_client->login(*m_user_account_data)) {
 
+        m_user_client->ListenUnLock();
         ToolBox::err() << "Invalid user name or password, please check" << std::endl;
         WinError_("Invalid user name or password, please check");
 
         return false;
     }
 
+    m_user_client->ListenUnLock();
+    m_user_client->SetMeetingCore(this);
     return true;
 }
 

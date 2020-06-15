@@ -25,6 +25,8 @@
 //for make_unique
 #include "../ToolBox/ToolBox.hpp"
 
+class UserClient; // allow client to get image
+
 class EMCMeeting {
 
 private:
@@ -135,6 +137,7 @@ public:
      */
     void UploadUserAttentionData();
 
+    friend class UserClient;
 };
 
 
