@@ -21,9 +21,12 @@ namespace Constant{
     static const char server_disconnect_idle[] = "STOP_IDLE";
 
     static constexpr char data_spilt = '\1';
+    
     static constexpr char frag_server_login = 'L';
     static constexpr char frag_upload_user_data = 'D';
     static constexpr char frag_user_leave = 'G';
+    static constexpr char frag_image = 'I';
+    static constexpr char frag_image_jpg_file = 'J';
 
     static const char path_user_account_data[] = "Account";
 
