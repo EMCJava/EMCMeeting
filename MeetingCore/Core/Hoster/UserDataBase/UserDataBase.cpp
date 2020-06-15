@@ -216,6 +216,12 @@ bool UserDataBase::UserAllowLogin(std::string user_name, std::string password) {
 
     }
 
+    if(!m_user_account){
+
+        // no account stored
+        return false;
+    }
+
     // check if account exist
     auto it = m_user_account->find(user_name);
 
