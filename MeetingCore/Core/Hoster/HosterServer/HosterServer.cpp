@@ -19,6 +19,8 @@ HosterServer::HosterServer(unsigned int max_client) : m_max_client(max_client) {
     m_clients.resize(m_max_client, Client{Socket::EmptySock(), false});
 
     m_user_data_base = ToolBox::make_unique<UserDataBase>(std::string(Constant::path_user_account_data));
+
+    m_screenshot_timer = std::chrono::system_clock::now();
 }
 
 
@@ -72,8 +74,42 @@ void HosterServer::Start_(int max_client) {
 
     while (!m_listen_stop) {
 
-        auto nfds = epoll_wait(kdpfd, events.data(), curfds, 1000/*timeout*/);
-        //ToolBox::log() << "Start epoll_wait for one second, got : " << nfds << std::endl;
+        //send event
+
+        while (!m_send_message_queue.empty()) {
+            // get the first message from the front
+            auto sent_message = std::move(m_send_message_queue.front());
+            m_send_message_queue.pop_front();
+
+            switch (sent_message.type) {
+
+                case SendType::BroadCast:
+
+                    for (auto &client : m_clients) {
+                        //if position is not empty
+                        if (client.has_login && client.sockfd != Socket::EmptySock()) {
+                            m_tcp_server->send(client.sockfd, sent_message.message);
+                        }
+                    }
+
+                    break;
+
+                case SendType::Target:
+
+                    for (auto &client : m_clients) {
+                        //if position is target
+                        if (client.has_login && client.sockfd == sent_message.sock_fd) {
+                            m_tcp_server->send(client.sockfd, sent_message.message);
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        //read evenr
+        auto nfds = epoll_wait(kdpfd, events.data(), curfds, 300/*timeout*/);
+        //ToolBox::log() << "Start epoll_wait for 0.3 second, got : " << nfds << std::endl;
 
         if (nfds == -1) {
             ToolBox::err() << "epoll_wait error" << std::endl;
@@ -143,7 +179,7 @@ void HosterServer::Start_(int max_client) {
             //incoming message
 
             int result;
-            if ((result = m_tcp_server->receive(sd, mes)) == 0 && result == -1) {
+            if ((result = m_tcp_server->receive(sd, mes)) == 0 || result == -1) {
                 //Somebody disconnected , get his details and print
                 getpeername(sd, (struct sockaddr *) &address,
                             (socklen_t *) &addrlen);
@@ -220,9 +256,33 @@ void HosterServer::Start_(int max_client) {
 
 void HosterServer::Update() {
 
+    const auto time_passed = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - m_screenshot_timer).count() *
+                             std::chrono::microseconds::period::num /
+                             std::chrono::microseconds::period::den;
+
+    if (time_passed > Constant::SCREEN_SHOT_DELAY) {
+
+        sf::Image im;
+        m_screenShot.GetScreenShot(im);
+
+        sf::Image send_im;
+        send_im.create(800, 600);
+        MessagePackage::resizeImage(im, send_im);
+
+        // change format to save send data space
+        send_im.saveToFile(Constant::path_tem_image_send_file);
+
+        Socket::Message send_mes;
+        MessagePackage::GenMessage(send_mes, Constant::path_tem_image_send_file);
+        send_mes.mes.insert(send_mes.mes.begin(), Constant::frag_image_jpg_file);
+
+        m_send_message_queue.emplace_back(std::move(send_mes), SendType::BroadCast, Socket::EmptySock());
+
+        m_screenshot_timer = std::chrono::system_clock::now();
+    }
+
     // recv any data from client
-
-
     MessageHandle_();
 }
 
@@ -239,9 +299,9 @@ void HosterServer::MessageHandle_() {
 
     int client_fd = client_message.client_fd;
     auto client_it = std::find_if(m_clients.begin(), m_clients.end(),
-                                             [client_fd](HosterServer::Client &client) -> bool {
-                                                 return client.sockfd == client_fd;
-                                             });
+                                  [client_fd](HosterServer::Client &client) -> bool {
+                                      return client.sockfd == client_fd;
+                                  });
 
     switch (client_message.mes.mes[0]) {
 
@@ -253,7 +313,6 @@ void HosterServer::MessageHandle_() {
                                 client_message.mes.mes.data() +
                                 client_message.mes.mes.size()) // since it might not ends with '\0'
                             .substr(1);
-
 
             // get user name and password data
             // format username + spilt_pos + password
@@ -274,33 +333,13 @@ void HosterServer::MessageHandle_() {
 
             // give feedback to client
             client_message.mes.mes.assign(message, message + sizeof(message));
+
             m_tcp_server->send(client_it->sockfd, client_message.mes);
 
             // give user feedback
             ToolBox::log() << "Account " << client_it->name << " " << message << std::endl;
 
             client_it->has_login = account_exist;
-
-#warning testing image
-            if (account_exist) {
-
-                Socket::Message image_message;
-                sf::Image im;
-                im.loadFromFile("resource/testing1.png");
-
-                sf::Image send_im;
-                send_im.create(800, 600);
-                MessagePackage::resizeImage(im, send_im);
-
-                send_im.saveToFile("resource/tem_send.jpg");
-
-                MessagePackage::GenMessage(image_message, "resource/tem_send.jpg");
-
-                image_message.mes.insert(image_message.mes.begin(), Constant::frag_image_jpg_file);
-
-                m_tcp_server->send(client_it->sockfd, image_message);
-            }
-
         }
 
             break;
@@ -326,7 +365,7 @@ void HosterServer::MessageHandle_() {
         case Constant::frag_user_leave: {
 
             ToolBox::log() << "User " << client_it->name << " leave , resetting client data." << std::endl;
-            ResetClient_(*client_it);
+            //ResetClient_(*client_it); we do it in listen thread
 
         }
 

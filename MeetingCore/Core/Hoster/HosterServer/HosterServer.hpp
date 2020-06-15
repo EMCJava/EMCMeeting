@@ -27,6 +27,8 @@
 
 #endif
 
+#include "../../ScreenShot/ScreenShot.hpp"
+
 // hoster can collect the active data from user
 #include "../UserDataBase/UserDataBase.hpp"
 #include "../DataCollector/DataCollector.hpp"
@@ -68,19 +70,41 @@ private:
     // store all the data from all client e.g. concentration
     std::unique_ptr<DataCollector> m_data_collector;
 
-    struct ClientMessage {
+    struct ClientMessageData {
 
         Socket::Message mes;
         int client_fd = -1;
 
-        ClientMessage(Socket::Message &&message, int fd) {
+        ClientMessageData(Socket::Message &&message, int fd) {
             mes = std::move(message);
             client_fd = fd;
         }
     };
 
     // store all the message from client
-    std::deque<ClientMessage> m_client_message;
+    std::deque<ClientMessageData> m_client_message;
+
+    enum class SendType{
+        BroadCast, Target
+    };
+
+    struct SendMessageData{
+
+        Socket::Message message;
+        SendType type;
+
+        int sock_fd{};
+
+        SendMessageData(Socket::Message &&message, SendType type, int fd) {
+            this->message = message;
+            this->type = type;
+            sock_fd = fd;
+        }
+
+    };
+
+    // store all the message needed to send to client
+    std::deque<SendMessageData> m_send_message_queue;
 
     void MessageHandle_();
 
@@ -89,6 +113,10 @@ private:
     void Start_(int max_client);
 
     void ResetClient_(Client& client);
+
+    //screen shot
+    typeof(std::chrono::system_clock::now()) m_screenshot_timer;
+    ScreenShot m_screenShot;
 
 public:
 
