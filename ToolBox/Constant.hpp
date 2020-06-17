@@ -15,6 +15,8 @@ namespace Constant{
     constexpr int SOCKET_PORT = 20546;
     constexpr float SCREEN_SHOT_DELAY = 0.05f;
 
+    constexpr float STREAMING_DELAY = 0.5f;
+
     static const char positive_message[] = "ACCEPTED";
     static const char negative_message[] = "REJECTED";
 
