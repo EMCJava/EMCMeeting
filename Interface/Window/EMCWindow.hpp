@@ -6,7 +6,11 @@
 #define EMCMEETING_WINDOW_HPP
 
 #include <iostream>
+#include <deque>
 #include <SFML/Graphics.hpp>
+
+// for screen shot fps
+#include "../../ToolBox/Constant.hpp"
 
 #include "WindowBase.hpp"
 
@@ -19,12 +23,29 @@
 
 class EMCWindow : public WindowBase{
 
+public:
+    /*
+ *
+ *  Image Buffer
+ *
+ */
+
+    struct ImageBuffer{
+
+        sf::Image im;
+        float time_since_start;
+    };
+
+
 private:
 
     // adjust any property the relate to window size
     void ChangeWindowsSize_() override ;
 
     std::unique_ptr<ImageRenderer> m_image_renderer;
+
+    typeof(std::chrono::system_clock::now()) m_streaming_begin_time;
+    std::deque<ImageBuffer> m_image_buffer;
 
     bool m_is_focusing = true;
 
@@ -43,6 +64,8 @@ public:
     void SetTitle(std::string str);
 
     void SetImage(sf::Image image);
+
+    void PushBackImageBuffer(ImageBuffer&& buffer);
 };
 
 

@@ -34,6 +34,36 @@ bool EMCWindow::Update() {
         return false;
     }
 
+    // update streaming image
+    if (!m_image_buffer.empty()) {
+
+        const auto time_passed_since_start = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now() - m_streaming_begin_time).count() *
+                                             std::chrono::microseconds::period::num /
+                                             std::chrono::microseconds::period::den;
+
+        ImageBuffer final_buffer;
+        final_buffer.time_since_start = -1;
+
+        // too much delay
+        if (m_image_buffer.back().time_since_start - time_passed_since_start > Constant::STREAMING_DELAY) {
+            m_streaming_begin_time = std::chrono::system_clock::now() - std::chrono::seconds(int(m_image_buffer.back().time_since_start));
+        }
+
+        //std::cout << m_image_buffer.begin()->time_since_start << " " << time_passed_since_start <<std::endl;
+
+        while (!m_image_buffer.empty() && m_image_buffer.begin()->time_since_start <= time_passed_since_start) {
+            final_buffer = std::move(*m_image_buffer.begin());
+            m_image_buffer.pop_front();
+        }
+
+        // we get a image
+        if (final_buffer.time_since_start > 0) {
+            SetImage(final_buffer.im);
+        }
+
+    }
+
     sf::Event app_event{};
 
     while (m_app->pollEvent(app_event)) {
@@ -89,14 +119,28 @@ void EMCWindow::SetImage(sf::Image image) {
 
     static auto previous_time = std::chrono::system_clock::now();
 
-    const auto time_passed = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+    /*const auto time_passed = (float) std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now() - previous_time).count() *
                              std::chrono::microseconds::period::num /
                              std::chrono::microseconds::period::den;
 
-    std::cout << "time_passed : " << time_passed << std::endl;
+    std::cout << "time_passed : " << time_passed << std::endl;*/
 
     m_image_renderer->SetImage(image);
     previous_time = std::chrono::system_clock::now();
 
+}
+
+void EMCWindow::PushBackImageBuffer(EMCWindow::ImageBuffer &&buffer) {
+
+    static bool is_first_image = true;
+
+    if (is_first_image) {
+
+        m_streaming_begin_time = std::chrono::system_clock::now();
+
+        is_first_image = false;
+    }
+
+    m_image_buffer.emplace_back(std::move(buffer));
 }
