@@ -15,6 +15,9 @@ HosterServer::HosterServer(unsigned int max_client) : m_max_client(max_client) {
 
 #endif
 
+    // client might close without noticing us
+    //signal(SIGPIPE, SIG_IGN);
+
     m_data_collector = ToolBox::make_unique<DataCollector>();
     m_clients.resize(m_max_client, Client{Socket::EmptySock(), false});
 
@@ -55,13 +58,12 @@ void HosterServer::Start_(int max_client) {
     struct sockaddr_in address{};
     socklen_t addrlen = 0;
 
-    struct epoll_event ev{};
     std::vector<epoll_event> events;
 
     // + 1 for server itself
     events.resize(max_epoll_size);
 
-    int kdpfd = epoll_create(max_epoll_size);
+    kdpfd = epoll_create(max_epoll_size);
     ev.events = EPOLLIN;
     ev.data.fd = sock_fd;
     if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, sock_fd, &ev) < 0) {
@@ -69,8 +71,6 @@ void HosterServer::Start_(int max_client) {
         ToolBox::err() << "Stop listening client message" << sock_fd << std::endl;
         return;
     }
-
-    int curfds = 1;
 
     while (!m_listen_stop) {
 
@@ -195,10 +195,26 @@ void HosterServer::Start_(int max_client) {
 
                 //Close the socket and mark as Socket::EmptySock() in list for reuse
 
-                ResetClient_(*remove_target_client);
+                MessageHandle_(&events[n].data.fd);
 
-                epoll_ctl(kdpfd, EPOLL_CTL_DEL, events[n].data.fd, &ev);
-                curfds--;
+                remove_target_client = std::find_if(m_clients.begin(), m_clients.end(),
+                                                    [sd](HosterServer::Client &client) -> bool {
+                                                        return client.sockfd == sd;
+                                                    });
+
+                m_send_message_queue.erase(std::remove_if(m_send_message_queue.begin(), m_send_message_queue.end(),
+                                                          [sd](SendMessageData &data)
+                                                                  -> bool {
+                                                              return data.sock_fd == sd;
+                                                          }), m_send_message_queue.end());
+
+                //still haven delete
+                if (remove_target_client != m_clients.end()) {
+                    ResetClient_(*remove_target_client);
+                    epoll_ctl(kdpfd, EPOLL_CTL_DEL, events[n].data.fd, &ev);
+                    curfds--;
+                }
+
             } else { // we get a message !
                 ToolBox::log() << "We get a message from " << sd << " with size [" << mes.mes.size() << "]"
                                << std::endl;
@@ -256,12 +272,14 @@ void HosterServer::Start_(int max_client) {
 
 void HosterServer::Update() {
 
-    const auto time_passed = (float) std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now() - m_screenshot_timer).count() *
-                             std::chrono::microseconds::period::num /
-                             std::chrono::microseconds::period::den;
+    static auto streaming_start_time = std::chrono::system_clock::now();
 
-    if (time_passed > Constant::SCREEN_SHOT_DELAY) {
+    const float time_passed_since_screen_shot = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - m_screenshot_timer).count() *
+                                                std::chrono::microseconds::period::num /
+                                                std::chrono::microseconds::period::den;
+
+    if (time_passed_since_screen_shot > Constant::SCREEN_SHOT_DELAY) {
 
         sf::Image im;
         m_screenShot.GetScreenShot(im);
@@ -275,6 +293,19 @@ void HosterServer::Update() {
 
         Socket::Message send_mes;
         MessagePackage::GenMessage(send_mes, Constant::path_tem_image_send_file);
+
+        const float time_passed_since_streaming = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now() - streaming_start_time).count() *
+                                                  std::chrono::microseconds::period::num /
+                                                  std::chrono::microseconds::period::den;
+
+        int time_passed_since_streaming_millisecond = time_passed_since_streaming * 1000;
+
+        // insert delta time
+        send_mes.mes.insert(send_mes.mes.begin(), reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
+                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond)+ sizeof(time_passed_since_streaming_millisecond));
+
+        // insert frag
         send_mes.mes.insert(send_mes.mes.begin(), Constant::frag_image_jpg_file);
 
         m_send_message_queue.emplace_back(std::move(send_mes), SendType::BroadCast, Socket::EmptySock());
@@ -286,98 +317,129 @@ void HosterServer::Update() {
     MessageHandle_();
 }
 
-void HosterServer::MessageHandle_() {
+void HosterServer::MessageHandle_(const int *target_fd) {
 
     if (m_client_message.empty()) {
 
         return;
     }
 
-    // get the first message from the front
-    auto client_message = std::move(m_client_message.front());
-    m_client_message.pop_front();
+    while (!m_client_message.empty()) {
 
-    int client_fd = client_message.client_fd;
-    auto client_it = std::find_if(m_clients.begin(), m_clients.end(),
-                                  [client_fd](HosterServer::Client &client) -> bool {
-                                      return client.sockfd == client_fd;
-                                  });
+        // get the first message from the front
+        ClientMessageData client_message{};
 
-    switch (client_message.mes.mes[0]) {
+        // we have a target
+        if (target_fd) {
 
-        case Constant::frag_server_login: {
+            int client_message_index = 0;
+            for (; client_message_index < m_client_message.size(); ++client_message_index) {
 
-            // skip the first character
-            std::string pure_data =
-                    std::string(client_message.mes.mes.data(),
-                                client_message.mes.mes.data() +
-                                client_message.mes.mes.size()) // since it might not ends with '\0'
-                            .substr(1);
+                if (m_client_message[client_message_index].client_fd == *target_fd) {
 
-            // get user name and password data
-            // format username + spilt_pos + password
-            const auto spilt_pos = pure_data.find(Constant::data_spilt);
-
-            client_it->name = pure_data.substr(0, spilt_pos);
-            client_it->password = pure_data.substr(spilt_pos + 1);
-
-            if (client_it->password.back() == '\0') {
-                client_it->password.pop_back();
+                    break;
+                }
             }
 
-            //check if is user name and password is available
-            bool account_exist = m_user_data_base->UserAllowLogin(client_it->name, client_it->password);
+            if (client_message_index == m_client_message.size()) {
 
-            const auto &message = account_exist ? Constant::positive_message
-                                                : Constant::negative_message;
+                //no message for target fd
+                return;
+            }
 
-            // give feedback to client
-            client_message.mes.mes.assign(message, message + sizeof(message));
+            client_message = std::move(m_client_message[client_message_index]);
+            m_client_message.erase(m_client_message.begin() + client_message_index);
+        } else {
 
-            m_tcp_server->send(client_it->sockfd, client_message.mes);
-
-            // give user feedback
-            ToolBox::log() << "Account " << client_it->name << " " << message << std::endl;
-
-            client_it->has_login = account_exist;
-        }
-
-            break;
-
-        case Constant::frag_upload_user_data: {
-
-            // skip the first character
-            std::string pure_data =
-                    std::string(client_message.mes.mes.data(),
-                                client_message.mes.mes.data() +
-                                client_message.mes.mes.size()) // since it might not ends with '\0'
-                            .substr(1);
-
-
-            m_data_collector->m_clients_data[client_it->name] = DataCollector::DecodeMessageData(pure_data);
-            ToolBox::log() << "User " << client_it->name << " sending account data , updating client account data."
-                           << std::endl;
+            client_message = std::move(m_client_message.front());
+            m_client_message.pop_front();
 
         }
 
-            break;
+        int client_fd = client_message.client_fd;
+        auto client_it = std::find_if(m_clients.begin(), m_clients.end(),
+                                      [client_fd](HosterServer::Client &client) -> bool {
+                                          return client.sockfd == client_fd;
+                                      });
 
-        case Constant::frag_user_leave: {
 
-            ToolBox::log() << "User " << client_it->name << " leave , resetting client data." << std::endl;
-            //ResetClient_(*client_it); we do it in listen thread
+        switch (client_message.mes.mes[0]) {
+
+            case Constant::frag_server_login: {
+
+                // skip the first character
+                std::string pure_data =
+                        std::string(client_message.mes.mes.data(),
+                                    client_message.mes.mes.data() +
+                                    client_message.mes.mes.size()) // since it might not ends with '\0'
+                                .substr(1);
+
+                // get user name and password data
+                // format username + spilt_pos + password
+                const auto spilt_pos = pure_data.find(Constant::data_spilt);
+
+                client_it->name = pure_data.substr(0, spilt_pos);
+                client_it->password = pure_data.substr(spilt_pos + 1);
+
+                if (client_it->password.back() == '\0') {
+                    client_it->password.pop_back();
+                }
+
+                //check if is user name and password is available
+                bool account_exist = m_user_data_base->UserAllowLogin(client_it->name, client_it->password);
+
+                const auto &message = account_exist ? Constant::positive_message
+                                                    : Constant::negative_message;
+
+                // give feedback to client
+                client_message.mes.mes.assign(message, message + sizeof(message));
+
+                m_tcp_server->send(client_it->sockfd, client_message.mes);
+
+                // give user feedback
+                ToolBox::log() << "Account " << client_it->name << " " << message << std::endl;
+
+                client_it->has_login = account_exist;
+            }
+
+                break;
+
+            case Constant::frag_upload_user_data: {
+
+                // skip the first character
+                std::string pure_data =
+                        std::string(client_message.mes.mes.data(),
+                                    client_message.mes.mes.data() +
+                                    client_message.mes.mes.size()) // since it might not ends with '\0'
+                                .substr(1);
+
+
+                m_data_collector->m_clients_data[client_it->name] = DataCollector::DecodeMessageData(pure_data);
+                ToolBox::log() << "User " << client_it->name << " sending account data , updating client account data."
+                               << std::endl;
+
+            }
+
+                break;
+
+            case Constant::frag_user_leave: {
+
+                ToolBox::log() << "User " << client_it->name << " leave , resetting client data." << std::endl;
+
+                //ResetClient_(*client_it);
+                //epoll_ctl(kdpfd, EPOLL_CTL_DEL, client_it->sockfd, &ev);
+                //curfds--;
+            }
+
+                break;
+
+            default:
+                ToolBox::err() << "Unknown message format receive from client. " << std::endl;
+
+                break;
 
         }
-
-            break;
-
-        default:
-            ToolBox::err() << "Unknown message format receive from client. " << std::endl;
-
-            break;
-
     }
-
 }
 
 void HosterServer::ResetClient_(HosterServer::Client &client) {

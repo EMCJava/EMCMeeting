@@ -10,6 +10,7 @@
 #include <vector>
 #include <deque>
 #include <chrono> // for system clock
+#include <csignal>
 
 #include "../../../../ToolBox/ToolBox.hpp"
 #include "../../../../ToolBox/Constant.hpp"
@@ -75,6 +76,8 @@ private:
         Socket::Message mes;
         int client_fd = -1;
 
+        ClientMessageData() = default;
+
         ClientMessageData(Socket::Message &&message, int fd) {
             mes = std::move(message);
             client_fd = fd;
@@ -106,10 +109,17 @@ private:
     // store all the message needed to send to client
     std::deque<SendMessageData> m_send_message_queue;
 
-    void MessageHandle_();
+    /*
+     *
+     *  if target_fd != nullptr, handle message only for *target_fd
+     *
+     */
+    void MessageHandle_(const int * target_fd = nullptr);
 
     unsigned int m_max_client = 10;
 
+    struct epoll_event ev{};
+    int kdpfd, curfds = 1;
     void Start_(int max_client);
 
     void ResetClient_(Client& client);
