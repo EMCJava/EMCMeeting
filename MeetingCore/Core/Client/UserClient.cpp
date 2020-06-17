@@ -204,12 +204,18 @@ void UserClient::MessageHandle_() {
 
             server_message.mes.erase(server_message.mes.begin());// delete frag
 
+            int time_passed_since_streaming_millisecond;
+            std::memcpy(reinterpret_cast<char *>(&time_passed_since_streaming_millisecond), server_message.mes.data(), sizeof(time_passed_since_streaming_millisecond)); // get delta time
+
+            // remove time data
+            server_message.mes.erase(server_message.mes.begin(), server_message.mes.begin() + sizeof(time_passed_since_streaming_millisecond));
+
             MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
             sf::Image recv_image;
 
             recv_image.loadFromFile("resource/tem_recv.jpg");
             if (m_meeting_core)
-                m_meeting_core->m_main_window->SetImage(recv_image);
+                m_meeting_core->m_main_window->PushBackImageBuffer({recv_image, time_passed_since_streaming_millisecond / 1000.0f});
         }
 
             break;
