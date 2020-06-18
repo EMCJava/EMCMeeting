@@ -2,11 +2,11 @@
 // Created by loyusum on 9/6/2020.
 //
 
-#include "UserClientAskHosterIPAndPortWindow.hpp"
+#include "AskHosterIPAndPortWindow.hpp"
 
-const std::string UserClientAskHosterIPAndPortWindow::sm_font_path = "resource/ShareTechMono.ttf";
+const std::string AskHosterIPAndPortWindow::sm_font_path = "resource/ShareTechMono.ttf";
 
-UserClientAskHosterIPAndPortWindow::UserClientAskHosterIPAndPortWindow(int screen_size_x, int screen_size_y) {
+AskHosterIPAndPortWindow::AskHosterIPAndPortWindow(int screen_size_x, int screen_size_y) {
 
     m_app = ToolBox::make_unique<sf::RenderWindow>(sf::VideoMode(screen_size_x, screen_size_y),
                                                    "Login", sf::Style::Default - sf::Style::Resize);
@@ -34,7 +34,7 @@ UserClientAskHosterIPAndPortWindow::UserClientAskHosterIPAndPortWindow(int scree
     m_texts->addText("server_port_text", "Server port :", "default", 20, 10, 70);
 }
 
-bool UserClientAskHosterIPAndPortWindow::Update() {
+bool AskHosterIPAndPortWindow::Update() {
 
     const auto is_open = m_app->isOpen();
 
@@ -88,7 +88,7 @@ bool UserClientAskHosterIPAndPortWindow::Update() {
 
 }
 
-void UserClientAskHosterIPAndPortWindow::text_input(const char character) {
+void AskHosterIPAndPortWindow::text_input(const char character) {
 
     if (m_input_fields[0].isConcentrated()) {
         m_input_fields[0].push_back(character);
@@ -107,13 +107,13 @@ void UserClientAskHosterIPAndPortWindow::text_input(const char character) {
 
 }
 
-void UserClientAskHosterIPAndPortWindow::Close() {
+void AskHosterIPAndPortWindow::Close() {
     ip = m_input_fields[0].getText();
     port = m_input_fields[1].getText();
 
     WindowBase::Close();
 }
 
-bool UserClientAskHosterIPAndPortWindow::IsCancel() {
+bool AskHosterIPAndPortWindow::IsCancel() {
     return m_is_cancel;
 }

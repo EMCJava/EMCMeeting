@@ -2,8 +2,8 @@
 // Created by loyusum on 9/6/2020.
 //
 
-#ifndef EMCMEETING_USERCLIENTASKHOSTERIPANDPORTWINDOW_HPP
-#define EMCMEETING_USERCLIENTASKHOSTERIPANDPORTWINDOW_HPP
+#ifndef EMCMEETING_ASKHOSTERIPANDPORTWINDOW_HPP
+#define EMCMEETING_ASKHOSTERIPANDPORTWINDOW_HPP
 
 #include <string>
 #include <vector>
@@ -20,7 +20,7 @@
 #include "../Window/WindowBase.hpp"
 #include "../../ToolBox/ToolBox.hpp"
 
-class UserClientAskHosterIPAndPortWindow : public WindowBase{
+class AskHosterIPAndPortWindow : public WindowBase{
 
 private:
 
@@ -37,7 +37,7 @@ private:
 public:
     std::string ip = "0.0.0.0", port = "0";
 
-    UserClientAskHosterIPAndPortWindow(int screen_size_x, int screen_size_y);
+    AskHosterIPAndPortWindow(int screen_size_x, int screen_size_y);
 
     // return false if window has closed or user had completed to fill in their data
     bool Update() override;
@@ -49,4 +49,4 @@ public:
 };
 
 
-#endif //EMCMEETING_USERCLIENTASKHOSTERIPANDPORTWINDOW_HPP
+#endif //EMCMEETING_ASKHOSTERIPANDPORTWINDOW_HPP

@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "../Interface/ErrorWindow/ErrorWindow.hpp"
-#include "../Interface/UserClientAskHosterIPAndPortWindow/UserClientAskHosterIPAndPortWindow.hpp"
+#include "../Interface/AskHosterIPAndPortWindow/AskHosterIPAndPortWindow.hpp"
 #include "../Interface/UserAskWhetherHosterWindow/UserAskWhetherHosterWindow.hpp"
 #include "../Interface/UserLoginWindow/UserLoginWindow.hpp"
 #include "../Interface/Window/EMCWindow.hpp"

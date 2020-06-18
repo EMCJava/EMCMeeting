@@ -177,7 +177,7 @@ UserAskWhetherHosterWindow::UserType EMCMeeting::SelectUserType_() {
 
 std::pair<std::string, int> EMCMeeting::SelectIpAndPort_(bool *isCancel) {
 
-    std::unique_ptr<UserClientAskHosterIPAndPortWindow> win;
+    std::unique_ptr<AskHosterIPAndPortWindow> win;
 
     bool ip_accept = true;
 
@@ -187,7 +187,7 @@ std::pair<std::string, int> EMCMeeting::SelectIpAndPort_(bool *isCancel) {
             WinError_("Ip address invalid");
         }
 
-        win = ToolBox::make_unique<UserClientAskHosterIPAndPortWindow>(
+        win = ToolBox::make_unique<AskHosterIPAndPortWindow>(
                 400, 200);
         while (win->Update());
 
