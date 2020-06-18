@@ -53,6 +53,12 @@ void MessagePackage::ReadImage(Socket::Message &mes, sf::Image &image) {
     image.create(image_size.x, image_size.y, reinterpret_cast<const sf::Uint8 *>(mes.mes.data() + image_axis_size * 2));
 }
 
+void MessagePackage::ReadImage_FileStream(Socket::Message &mes, sf::Image &image) {
+
+    image.loadFromMemory(reinterpret_cast<const void *>(mes.mes.data()), mes.mes.size());
+}
+
+
 void MessagePackage::GenMessage(Socket::Message &mes, std::string input_file_name) {
 
     mes.mes.clear();

@@ -20,6 +20,7 @@ public:
 
     static void resizeImage(const sf::Image& originalImage, sf::Image& resizedImage);
     static void ReadImage(Socket::Message& mes, sf::Image& image);
+    static void ReadImage_FileStream(Socket::Message& mes, sf::Image& image);
     static void GenMessage(Socket::Message& mes, sf::Image& image);
 
     static void GenMessage(Socket::Message& mes, std::string input_file_name);

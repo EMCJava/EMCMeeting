@@ -239,10 +239,9 @@ void UserClient::MessageHandle_() {
                                          server_message.mes.begin() +
                                          sizeof(time_passed_since_streaming_millisecond));
 
-                MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
                 sf::Image recv_image;
+                MessagePackage::ReadImage_FileStream(server_message, recv_image);
 
-                recv_image.loadFromFile("resource/tem_recv.jpg");
                 if (m_meeting_core)
                     m_meeting_core->m_main_window->PushBackImageBuffer(
                             {recv_image, time_passed_since_streaming_millisecond / 1000.0f});
