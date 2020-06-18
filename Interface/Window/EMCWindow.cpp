@@ -47,7 +47,8 @@ bool EMCWindow::Update() {
 
         // too much delay
         if (m_image_buffer.back().time_since_start - time_passed_since_start > Constant::STREAMING_DELAY) {
-            m_streaming_begin_time = std::chrono::system_clock::now() - std::chrono::seconds(int(m_image_buffer.back().time_since_start));
+            m_streaming_begin_time = std::chrono::system_clock::now() - std::chrono::milliseconds(
+                    (int) ((m_image_buffer.back().time_since_start - Constant::STREAMING_DELAY) * 1000.0));
         }
 
         //std::cout << m_image_buffer.begin()->time_since_start << " " << time_passed_since_start <<std::endl;
