@@ -39,11 +39,11 @@ void HosterServer::Start() {
     }
 
     m_tcp_server->listen(m_max_client);
-    m_listen_thread = ToolBox::make_unique<std::thread>(&HosterServer::Start_, this, m_max_client);
-
+    m_listen_thread = ToolBox::make_unique<std::thread>(&HosterServer::StartReceive_, this, m_max_client);
+    m_send_thread = ToolBox::make_unique<std::thread>(&HosterServer::StartSend_, this);
 }
 
-void HosterServer::Start_(int max_client) {
+void HosterServer::StartReceive_(int max_client) {
 
 #if defined(__WIN32__) || defined(_WIN32)
 
@@ -96,40 +96,7 @@ void HosterServer::Start_(int max_client) {
 
 #endif
 
-    while (!m_listen_stop) {
-
-        //send event
-
-        while (!m_send_message_queue.empty()) {
-            // get the first message from the front
-            auto sent_message = std::move(m_send_message_queue.front());
-            m_send_message_queue.pop_front();
-
-            switch (sent_message.type) {
-
-                case SendType::BroadCast:
-
-                    for (auto &client : m_clients) {
-                        //if position is not empty
-                        if (client.has_login && client.sockfd != Socket::EmptySock()) {
-                            m_tcp_server->send(client.sockfd, sent_message.message);
-                        }
-                    }
-
-                    break;
-
-                case SendType::Target:
-
-                    for (auto &client : m_clients) {
-                        //if position is target
-                        if (client.has_login && client.sockfd == sent_message.sock_fd) {
-                            m_tcp_server->send(client.sockfd, sent_message.message);
-                        }
-                    }
-
-                    break;
-            }
-        }
+    while (!m_thread_stop) {
 
 #ifdef __linux__
 
@@ -339,6 +306,46 @@ void HosterServer::Start_(int max_client) {
     }
 }
 
+void HosterServer::StartSend_() {
+
+    while (!m_thread_stop) {
+
+        //send event
+        if (!m_send_message_queue.empty()) {
+            // get the first message from the front
+            auto sent_message = std::move(m_send_message_queue.front());
+            m_send_message_queue.pop_front();
+
+            switch (sent_message.type) {
+
+                case SendType::BroadCast:
+
+                    for (auto &client : m_clients) {
+                        //if position is not empty
+                        if (client.has_login && client.sockfd != Socket::EmptySock()) {
+                            m_tcp_server->send(client.sockfd, sent_message.message);
+                        }
+                    }
+
+                    break;
+
+                case SendType::Target:
+
+                    for (auto &client : m_clients) {
+                        //if position is target
+                        if (client.has_login && client.sockfd == sent_message.sock_fd) {
+                            m_tcp_server->send(client.sockfd, sent_message.message);
+                        }
+                    }
+                    break;
+            }
+        } else {
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }
+}
+
 
 void HosterServer::Update() {
 
@@ -348,9 +355,7 @@ void HosterServer::Update() {
             std::chrono::system_clock::now() - m_screenshot_timer).count() *
                                                 std::chrono::microseconds::period::num /
                                                 std::chrono::microseconds::period::den;
-
-    std::cout << time_passed_since_screen_shot << std::endl;
-
+    
     if (time_passed_since_screen_shot > Constant::SCREEN_SHOT_DELAY) {
         m_screenshot_timer = std::chrono::system_clock::now();
 
@@ -531,7 +536,7 @@ void HosterServer::ResetClient_(HosterServer::Client &client) {
 }
 
 HosterServer::~HosterServer() {
-    m_listen_stop = true;
+    m_thread_stop = true;
 
     Socket::Message mes;
     mes.mes.resize(1, Constant::frag_user_leave);

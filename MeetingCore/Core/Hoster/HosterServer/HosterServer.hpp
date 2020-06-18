@@ -49,9 +49,12 @@ private:
     // the Tcp socket class
     std::unique_ptr<TCPServer> m_tcp_server;
 
-    // send & recv & accept client thread
-    bool m_listen_stop = false;
+    // recv & accept client thread
+    bool m_thread_stop = false;
     std::unique_ptr<std::thread> m_listen_thread;
+
+    // send message to client thread
+    std::unique_ptr<std::thread> m_send_thread;
 
     // client content
     struct Client {
@@ -133,7 +136,11 @@ private:
 
 #endif
 
-    void Start_(int max_client);
+    // recv & accept client
+    void StartReceive_(int max_client);
+
+    // send message to client
+    void StartSend_();
 
     void ResetClient_(Client& client);
 
