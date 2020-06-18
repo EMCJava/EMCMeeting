@@ -3,7 +3,7 @@ project(EMCMeeting)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(STATIC_BUILD FALSE)
+set(STATIC_BUILD TRUE)
 
 if (STATIC_BUILD)
     set(SFML_STATIC_LIBRARIES TRUE)
@@ -14,7 +14,7 @@ if (STATIC_BUILD)
     endif ()
 
 else ()
-
+    set(SFML_STATIC_LIBRARIES FALSE)
     set(SFML_STATIC_LIBRARIES OFF)
     set(BUILD_SHARED_LIBS TRUE)
 
@@ -45,22 +45,23 @@ else ()
     add_subdirectory(Interface)
     add_subdirectory(MeetingCore)
 
+    if (UNIX)
+        target_link_libraries(ScreenShotlib X11 Xext)
+    endif ()
+    target_link_libraries(ScreenShotlib sfml-graphics)
+
     target_link_libraries(UserAskWhetherHosterWindowlib sfml-graphics)
     target_link_libraries(ErrorWindowlib sfml-graphics)
     target_link_libraries(UIlib sfml-graphics)
-    target_link_libraries(MessagePackagelib PUBLIC sfml-graphics)
+    target_link_libraries(MessagePackagelib sfml-graphics)
     target_link_libraries(UserClientlib sfml-graphics)
+    target_link_libraries(UserClientlib MessagePackagelib)
 
     target_link_libraries(EMCWindowlib ImageRendererlib)
     target_link_libraries(UserLoginWindowlib Buttonlib)
     target_link_libraries(UserLoginWindowlib InputFieldlib)
 
     target_link_libraries(UserClientAskHosterIPAndPortWindowlib sfml-graphics)
-
-    if (UNIX)
-        target_link_libraries(ScreenShotlib X11 Xext)
-    endif ()
-    target_link_libraries(ScreenShotlib sfml-graphics)
 
     target_link_libraries(HosterServerlib TCPServerlib)
     target_link_libraries(HosterServerlib UserDataBaselib)
