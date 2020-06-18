@@ -45,6 +45,18 @@ void HosterServer::Start() {
 
 void HosterServer::Start_(int max_client) {
 
+#if defined(__WIN32__) || defined(_WIN32)
+
+    if (max_client > FD_SETSIZE) {
+
+        ToolBox::err() << "support up to " << FD_SETSIZE << " clients only, setting max_client to " << FD_SETSIZE
+                       << std::endl;
+
+        max_client = FD_SETSIZE;
+    }
+
+#endif
+
     static constexpr auto microseconds_to_second_ratio = (float) std::chrono::microseconds::period::num /
                                                          std::chrono::microseconds::period::den;
 
@@ -57,6 +69,8 @@ void HosterServer::Start_(int max_client) {
 
     struct sockaddr_in address{};
     socklen_t addrlen = 0;
+
+#ifdef __linux__
 
     std::vector<epoll_event> events;
 
@@ -71,6 +85,16 @@ void HosterServer::Start_(int max_client) {
         ToolBox::err() << "Stop listening client message" << sock_fd << std::endl;
         return;
     }
+
+#elif defined(__WIN32__) || defined(_WIN32)
+
+    FD_SET socketSet;
+    FD_SET readSet;
+
+    FD_ZERO(&socketSet);
+    FD_SET(m_tcp_server->GetFD(), &socketSet);
+
+#endif
 
     while (!m_listen_stop) {
 
@@ -107,19 +131,44 @@ void HosterServer::Start_(int max_client) {
             }
         }
 
+#ifdef __linux__
+
         //read evenr
-        auto nfds = epoll_wait(kdpfd, events.data(), curfds, 300/*timeout*/);
-        //ToolBox::log() << "Start epoll_wait for 0.3 second, got : " << nfds << std::endl;
+        auto nfds = epoll_wait(kdpfd, events.data(), curfds, 2000/*timeout*/);
+        //ToolBox::log() << "Start epoll_wait for 2 second, got : " << nfds << std::endl;
 
         if (nfds == -1) {
-            ToolBox::err() << "epoll_wait error" << std::endl;
+
+            ToolBox::err() << "epoll_wait() error" << std::endl;
             continue;
         }
 
         // loop all event
         for (int n = 0; n < nfds; ++n) {
             // is server has input stream
-            if (events[n].data.fd == sock_fd) {
+            if ((sd = events[n].data.fd) == sock_fd) {
+
+#elif defined(__WIN32__) || defined(_WIN32)
+
+        FD_ZERO(&readSet);
+        readSet = socketSet;
+
+        timeval timeout{0, 2000000};
+        int ret = select(0, &readSet, nullptr, nullptr, &timeout);
+        //ToolBox::log() << "Start select for 2 second, got : " << ret << std::endl;
+
+        if (ret == SOCKET_ERROR) {
+
+            ToolBox::err() << "select() error" << std::endl;
+            continue;
+        }
+
+
+        // loop all event
+        for (int n = 0; n < readSet.fd_count; ++n) {
+            // is server has input stream
+            if ((sd = readSet.fd_array[n]) == sock_fd) {
+#endif
 
                 if ((new_socket = m_tcp_server->accept()) < 0) {
                     ToolBox::err() << "Can't accept client, check your connection" << std::endl;
@@ -155,26 +204,35 @@ void HosterServer::Start_(int max_client) {
                     // stop client from keep connecting
                     m_tcp_server->send(new_socket, mes);
 
+#ifdef __linux__
                     close(new_socket);
+#elif defined(__WIN32__) || defined(_WIN32)
+                    closesocket(new_socket);
+#endif
 
                     continue;
                 }
 
-                ev.events = EPOLLIN;
-                ev.data.fd = new_socket;
-                if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, new_socket, &ev) < 0) {
-                    ToolBox::err() << "add socket " << new_socket << " to epoll failed: " << strerror(errno)
-                                   << std::endl;
+#ifdef __linux__
 
-                    return;
-                }
-                curfds++;
+                    ev.events = EPOLLIN;
+                    ev.data.fd = new_socket;
+                    if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, new_socket, &ev) < 0) {
+                        ToolBox::err() << "add socket " << new_socket << " to epoll failed: " << strerror(errno)
+                                       << std::endl;
+
+                        return;
+                    }
+                    curfds++;
+#elif defined(__WIN32__) || defined(_WIN32)
+
+                FD_SET(new_socket, &socketSet);
+#endif
+
                 continue;
             }
 
             //else its some IO operation on some other socket
-            sd = events[n].data.fd;
-
             //Check if it was for closing , and also read the
             //incoming message
 
@@ -195,7 +253,7 @@ void HosterServer::Start_(int max_client) {
 
                 //Close the socket and mark as Socket::EmptySock() in list for reuse
 
-                MessageHandle_(&events[n].data.fd);
+                MessageHandle_(&sd);
 
                 remove_target_client = std::find_if(m_clients.begin(), m_clients.end(),
                                                     [sd](HosterServer::Client &client) -> bool {
@@ -211,8 +269,16 @@ void HosterServer::Start_(int max_client) {
                 //still haven delete
                 if (remove_target_client != m_clients.end()) {
                     ResetClient_(*remove_target_client);
-                    epoll_ctl(kdpfd, EPOLL_CTL_DEL, events[n].data.fd, &ev);
+
+#ifdef __linux__
+
+                    epoll_ctl(kdpfd, EPOLL_CTL_DEL, sd, &ev);
                     curfds--;
+#elif defined(__WIN32__) || defined(_WIN32)
+
+                    FD_CLR(sd, &socketSet);
+#endif
+
                 }
 
             } else { // we get a message !
@@ -258,15 +324,19 @@ void HosterServer::Start_(int max_client) {
 
                 // close socket and reset
 
-                epoll_ctl(kdpfd, EPOLL_CTL_DEL, client.sockfd, &ev);
-                curfds--;
                 ResetClient_(client);
+#ifdef __linux__
+
+                epoll_ctl(kdpfd, EPOLL_CTL_DEL, sd, &ev);
+                curfds--;
+#elif defined(__WIN32__) || defined(_WIN32)
+
+                FD_CLR(sd, &socketSet);
+#endif
 
             }
         }
-
     }
-
 }
 
 
@@ -279,7 +349,10 @@ void HosterServer::Update() {
                                                 std::chrono::microseconds::period::num /
                                                 std::chrono::microseconds::period::den;
 
+    std::cout << time_passed_since_screen_shot << std::endl;
+
     if (time_passed_since_screen_shot > Constant::SCREEN_SHOT_DELAY) {
+        m_screenshot_timer = std::chrono::system_clock::now();
 
         sf::Image im;
         m_screenShot.GetScreenShot(im);
@@ -302,15 +375,15 @@ void HosterServer::Update() {
         int time_passed_since_streaming_millisecond = time_passed_since_streaming * 1000;
 
         // insert delta time
-        send_mes.mes.insert(send_mes.mes.begin(), reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
-                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond)+ sizeof(time_passed_since_streaming_millisecond));
+        send_mes.mes.insert(send_mes.mes.begin(),
+                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
+                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond) +
+                            sizeof(time_passed_since_streaming_millisecond));
 
         // insert frag
         send_mes.mes.insert(send_mes.mes.begin(), Constant::frag_image_jpg_file);
 
         m_send_message_queue.emplace_back(std::move(send_mes), SendType::BroadCast, Socket::EmptySock());
-
-        m_screenshot_timer = std::chrono::system_clock::now();
     }
 
     // recv any data from client
@@ -444,8 +517,13 @@ void HosterServer::MessageHandle_(const int *target_fd) {
 
 void HosterServer::ResetClient_(HosterServer::Client &client) {
 
-    if (client.sockfd != Socket::EmptySock())
+    if (client.sockfd != Socket::EmptySock()) {
+#ifdef __linux__
         close(client.sockfd);
+#elif defined(__WIN32__) || defined(_WIN32)
+        closesocket(client.sockfd);
+#endif
+    }
 
     client.sockfd = Socket::EmptySock();
     client.has_login = false;

@@ -44,7 +44,7 @@ private:
 
     std::unique_ptr<ImageRenderer> m_image_renderer;
 
-    typeof(std::chrono::system_clock::now()) m_streaming_begin_time;
+    decltype(std::chrono::system_clock::now()) m_streaming_begin_time;
     std::deque<ImageBuffer> m_image_buffer;
 
     bool m_is_focusing = true;

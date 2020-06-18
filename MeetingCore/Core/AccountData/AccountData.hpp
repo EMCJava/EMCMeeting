@@ -24,7 +24,7 @@ private:
     std::string m_user_name;
     std::string m_password;
 
-    typeof(std::chrono::system_clock::now()) m_begin_meeting_time, m_end_meeting_time;
+    decltype(std::chrono::system_clock::now()) m_begin_meeting_time, m_end_meeting_time;
 
     /*
      *

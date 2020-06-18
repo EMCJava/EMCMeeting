@@ -37,7 +37,8 @@ bool EMCMeeting::Update() {
     } else { // otherwise ...
 
         m_user_client->Update();
-        UpdateUserAttentionData_(m_main_window->IsOnFocus());
+        if (m_user_account_data)
+            UpdateUserAttentionData_(m_main_window->IsOnFocus());
 
     }
 
@@ -116,7 +117,8 @@ void EMCMeeting::UploadUserAttentionData() {
     if (m_user_client) {
 
         // user attention timer last accumulate
-        UpdateUserAttentionData_(false);
+        if (m_user_account_data)
+            UpdateUserAttentionData_(false);
 
         m_user_account_data->m_end_meeting_time = std::chrono::system_clock::now();
         m_user_client->SendAccountDataToServer_(*m_user_account_data);

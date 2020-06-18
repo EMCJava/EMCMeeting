@@ -22,6 +22,11 @@
 
 #include <sys/epoll.h>
 
+#elif defined(__WIN32__) || defined(_WIN32)
+
+#include <winsock2.h>
+#include <windows.h>
+
 #else
 
 #error sys/epoll.h is for linux
@@ -56,7 +61,7 @@ private:
         std::string name, password;
 
         bool has_login = false;
-        typeof(std::chrono::system_clock::now()) connect_time_point;
+        decltype(std::chrono::system_clock::now()) connect_time_point;
 
         explicit Client(int fd, bool login = false) {
             sockfd = fd;
@@ -118,14 +123,22 @@ private:
 
     unsigned int m_max_client = 10;
 
+#ifdef __linux__
+
     struct epoll_event ev{};
     int kdpfd, curfds = 1;
+
+#elif defined(__WIN32__) || defined(_WIN32)
+
+
+#endif
+
     void Start_(int max_client);
 
     void ResetClient_(Client& client);
 
     //screen shot
-    typeof(std::chrono::system_clock::now()) m_screenshot_timer;
+    decltype(std::chrono::system_clock::now()) m_screenshot_timer;
     ScreenShot m_screenShot;
 
 public:

@@ -13,7 +13,7 @@ namespace Constant{
 
     constexpr float IDLE_KICK_TIME_SECOND = 120;
     constexpr int SOCKET_PORT = 20546;
-    constexpr float SCREEN_SHOT_DELAY = 0.05f;
+    constexpr float SCREEN_SHOT_DELAY = 0.1f;
 
     constexpr float STREAMING_DELAY = 0.5f;
 
@@ -36,7 +36,8 @@ namespace Constant{
 
 #ifdef USE_STATIC_IP
 
-    const std::string SOCKET_IP = "127.0.0.1";
+    //const std::string SOCKET_IP = "127.0.0.1";
+    const std::string SOCKET_IP = "25.45.200.22";
 
 #endif
 

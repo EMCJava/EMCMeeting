@@ -19,7 +19,7 @@ void MessagePackage::resizeImage(const sf::Image &originalImage, sf::Image &resi
 }
 
 void MessagePackage::GenMessage(Socket::Message &mes, sf::Image &image) {
-    static constexpr auto image_axis_size = sizeof(typeof(image.getSize().x));
+    static constexpr auto image_axis_size = sizeof(decltype(image.getSize().x));
 
     const auto image_size = image.getSize();
 
@@ -40,9 +40,9 @@ void MessagePackage::GenMessage(Socket::Message &mes, sf::Image &image) {
 }
 
 void MessagePackage::ReadImage(Socket::Message &mes, sf::Image &image) {
-    static constexpr auto image_axis_size = sizeof(typeof(image.getSize().x));
+    static constexpr auto image_axis_size = sizeof(decltype(image.getSize().x));
 
-    typeof(image.getSize()) image_size;
+    decltype(image.getSize()) image_size;
 
     // get image size info
     std::memcpy(&image_size.x, reinterpret_cast<const char *>(mes.mes.data()), image_axis_size);

@@ -2,7 +2,7 @@
 
 int TCPServer::receive(int targetfd, Socket::Message &message) {
     // not for thread to use this function yet, no lock added.
-    static constexpr auto size_info_size = sizeof(typeof(message.mes.size()));
+    static constexpr auto size_info_size = sizeof(decltype(message.mes.size()));
     static std::vector<char> size_info;
 
     if (sockfd == EmptySock()) {
@@ -14,7 +14,7 @@ int TCPServer::receive(int targetfd, Socket::Message &message) {
     int result;
     if ((result = receive(targetfd, size_info_size, size_info)) != size_info_size) {
 
-        if(result == 0){
+        if (result == 0) {
 
             std::cout << "Socket Closed, no data received." << std::endl;
             return 0;
@@ -25,7 +25,7 @@ int TCPServer::receive(int targetfd, Socket::Message &message) {
 
     }
 
-    typeof(message.mes.size()) message_size;
+    decltype(message.mes.size()) message_size;
 
     std::memcpy(reinterpret_cast<char *>(&message_size), size_info.data(), size_info_size);
 
@@ -44,7 +44,7 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
     if (arr.size() != size)
         arr.resize(size);
 
-    typeof(arr.size()) data_received = 0;
+    decltype(arr.size()) data_received = 0;
 
     std::string size_str = std::to_string(size);
 
@@ -73,7 +73,7 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
 
         data_received += result;
 
-        std::string data_received_str =  std::to_string(data_received);
+        std::string data_received_str = std::to_string(data_received);
         data_received_str.resize(size_str.size(), ' ');
 
         std::string data_left_str = std::to_string(size - data_received);
@@ -93,7 +93,7 @@ int TCPServer::receive(int targetfd, size_t size, std::vector<char> &arr, float 
 
 int TCPServer::send(int targetfd, Socket::Message &message) {
     // not for thread to use this function yet, no lock added.
-    static constexpr auto size_info_size = sizeof(typeof(message.mes.size()));
+    static constexpr auto size_info_size = sizeof(decltype(message.mes.size()));
     static char size_info[size_info_size] = {};
 
     if (sockfd == EmptySock()) {
@@ -110,7 +110,7 @@ int TCPServer::send(int targetfd, Socket::Message &message) {
         return -1;
     }
 
-    typeof(message.mes.size()) message_sent = 0;
+    decltype(message.mes.size()) message_sent = 0;
 
     while (true) {
 
@@ -153,8 +153,13 @@ void TCPServer::ShutDown() {
 
     if (sockfd != EmptySock()) {
 
-        close(sockfd);
+#ifdef __linux__
 
+        close(sockfd);
+#elif defined(__WIN32__) || defined(_WIN32)
+
+        closesocket(sockfd);
+#endif
     }
 
 }
@@ -164,6 +169,18 @@ int TCPServer::Setup(std::string server_ip, int port) {
 }
 
 int TCPServer::Setup(in_addr_t server_ip, int port) {
+
+#if defined(__WIN32__) || defined(_WIN32)
+
+    WSAData wsaData;
+    WORD version = MAKEWORD(2, 2);
+    if (WSAStartup(version, &wsaData) != 0) {
+        // failed to initialize
+
+        return -1;
+    }
+
+#endif
 
     // close previous socket
     ShutDown();

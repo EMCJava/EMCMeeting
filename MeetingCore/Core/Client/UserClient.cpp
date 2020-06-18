@@ -56,9 +56,10 @@ bool UserClient::login(AccountData &accountData) {
     return false;
 }
 
-void UserClient::logout() {
+void UserClient::logout(AccountData &accountData) {
 
-#warning logout not finished
+#warning logout not finished (probably ?)
+    accountData.m_is_login = false;
 
 }
 
@@ -103,6 +104,8 @@ void UserClient::Start_() {
 
     Socket::Message mes;
 
+#ifdef __linux__
+
     static constexpr int MAX_EVENT = 8;
     epoll_event events[MAX_EVENT];
 
@@ -113,8 +116,16 @@ void UserClient::Start_() {
     event.data.fd = m_tcp_client->GetFD();
     epoll_ctl(epfd, EPOLL_CTL_ADD, event.data.fd, &event);
 
+#elif defined(__WIN32__) || defined(_WIN32)
+
+    FD_SET readSet;
+
+#endif
+
     while (!m_listen_stop) {
         ListenLock();
+
+#ifdef __linux__
 
         int number_ready = epoll_wait(epfd, events, MAX_EVENT, 1000/*timeout*/);
 
@@ -122,23 +133,36 @@ void UserClient::Start_() {
         for (int i = 0; i < number_ready; i++) {
             if (events[i].events & EPOLLIN) {
 
-                int size = m_tcp_client->receive(mes);
+#elif defined(__WIN32__) || defined(_WIN32)
 
-                // disconnected
-                if (size == 0) {
+        FD_ZERO(&readSet);
+        FD_SET(m_tcp_client->GetFD(), &readSet);
 
-                    ToolBox::log() << "Socket closed, stop listening." << std::endl;
-                    m_has_connect_server = false;
-                    return;
-                }
+        timeval timeout{0, 300000};
+        int ret = select(0, &readSet, nullptr, nullptr, &timeout);
 
-                //ToolBox::log() << "We get a message from server with size [" << mes.mes.size() << "]"
-                //               << std::endl;
+        if (ret > 0) {
+#endif
 
-                m_server_message.emplace_back(std::move(mes));
+            int size = m_tcp_client->receive(mes);
+
+            // disconnected
+            if (size == 0 || size == -1) {
+
+                ToolBox::log() << "Socket closed, stop listening." << std::endl;
+                m_has_connect_server = false;
+                return;
             }
+
+            //ToolBox::log() << "We get a message from server with size [" << mes.mes.size() << "]"
+            //               << std::endl;
+
+            m_server_message.emplace_back(std::move(mes));
         }
 
+#ifdef __linux__
+        }
+#endif
         ListenUnLock();
 
         // for other thread to take over the lock if necessary
@@ -205,17 +229,22 @@ void UserClient::MessageHandle_() {
             server_message.mes.erase(server_message.mes.begin());// delete frag
 
             int time_passed_since_streaming_millisecond;
-            std::memcpy(reinterpret_cast<char *>(&time_passed_since_streaming_millisecond), server_message.mes.data(), sizeof(time_passed_since_streaming_millisecond)); // get delta time
+            std::memcpy(reinterpret_cast<char *>(&time_passed_since_streaming_millisecond),
+                        server_message.mes.data(),
+                        sizeof(time_passed_since_streaming_millisecond)); // get delta time
 
             // remove time data
-            server_message.mes.erase(server_message.mes.begin(), server_message.mes.begin() + sizeof(time_passed_since_streaming_millisecond));
+            server_message.mes.erase(server_message.mes.begin(),
+                                     server_message.mes.begin() +
+                                     sizeof(time_passed_since_streaming_millisecond));
 
             MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
             sf::Image recv_image;
 
             recv_image.loadFromFile("resource/tem_recv.jpg");
             if (m_meeting_core)
-                m_meeting_core->m_main_window->PushBackImageBuffer({recv_image, time_passed_since_streaming_millisecond / 1000.0f});
+                m_meeting_core->m_main_window->PushBackImageBuffer(
+                        {recv_image, time_passed_since_streaming_millisecond / 1000.0f});
         }
 
             break;

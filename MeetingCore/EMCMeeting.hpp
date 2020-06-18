@@ -93,7 +93,7 @@ private:
      *
      */
 
-    typeof(std::chrono::system_clock::now()) m_last_time_since_on_focus;
+    decltype(std::chrono::system_clock::now()) m_last_time_since_on_focus;
 
     /*
      *

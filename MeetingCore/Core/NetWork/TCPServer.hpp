@@ -1,10 +1,16 @@
 #ifndef EMCNETWORK_TCPSERVER_HPP
 #define EMCNETWORK_TCPSERVER_HPP
 
-
 #include "Socket.hpp"
 
+#include <ctime>
 #include <string>
+
+#if defined(__WIN32__) || defined(_WIN32)
+
+#define in_addr_t unsigned int
+
+#endif
 
 class TCPServer : protected Socket {
 

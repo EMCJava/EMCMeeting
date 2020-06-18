@@ -15,15 +15,22 @@
 #include <X11/extensions/XShm.h>
 #include <sys/shm.h>
 
+#elif defined(__WIN32__) || defined(_WIN32)
+
+#include <Windows.h>
+
 #else
 
-#error only for linux x11 system
+#error only for linux x11 system and window
 
 #endif
 
 class ScreenShot {
 
 private:
+
+#ifdef __linux__
+
     Display *m_display;
     Window m_window_root;
     XWindowAttributes m_window_attributes;
@@ -34,13 +41,24 @@ private:
 
     unsigned int m_width, m_height;
 
+#elif defined(__WIN32__) || defined(_WIN32)
+
+    DWORD m_width, m_height;
+    HWND m_desktop_hwnd;
+    BITMAPINFO m_bmp_info = {0};
+    HDC m_dev_c;
+
+    std::vector<char> rgb_buffer;
+
+#endif
+
     bool m_success_attach = false;
 
 public:
 
     ScreenShot();
 
-    bool GetScreenShot(sf::Image& image);
+    bool GetScreenShot(sf::Image &image);
 
 };
 

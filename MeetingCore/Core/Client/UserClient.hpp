@@ -22,7 +22,17 @@
 #include "../../EMCMeeting.hpp"
 
 // Network
+#ifdef __linux__
+
 #include <sys/epoll.h>
+
+#elif defined(__WIN32__) || defined(_WIN32)
+
+#include <winsock2.h>
+#include <windows.h>
+
+#endif
+
 #include "../NetWork/TCPClient.hpp"
 
 
@@ -30,7 +40,7 @@ class UserClient {
 
 private:
 
-    EMCMeeting* m_meeting_core = nullptr;
+    EMCMeeting *m_meeting_core = nullptr;
 
     // send & recv & accept client thread
     bool m_listen_stop = false;
@@ -54,9 +64,11 @@ private:
     void Start_();
 
     void MessageHandle_();
+
 public:
 
     UserClient(std::string server_ip, int port);
+
     ~UserClient();
 
     bool HasConnect();
@@ -75,7 +87,7 @@ public:
      */
     void Start();
 
-    void logout();
+    void logout(AccountData &accountData);
 
     /*
     *
@@ -84,9 +96,10 @@ public:
     */
     void SendAccountDataToServer_(AccountData &accountData);
 
-    void SetMeetingCore(EMCMeeting* emcMeeting = nullptr);
+    void SetMeetingCore(EMCMeeting *emcMeeting = nullptr);
 
     void ListenLock();
+
     void ListenUnLock();
 
     void Update();

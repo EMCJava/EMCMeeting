@@ -62,6 +62,19 @@ int TCPClient::connect(in_addr_t server_ip, int port) {
 }
 
 void TCPClient::SetUp() {
+
+#if defined(__WIN32__) || defined(_WIN32)
+
+    WSAData wsaData;
+    WORD version = MAKEWORD(2, 2);
+    if (WSAStartup(version, &wsaData) != 0) {
+        // failed to initialize
+
+        return;
+    }
+
+#endif
+
     ShutDown();
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
