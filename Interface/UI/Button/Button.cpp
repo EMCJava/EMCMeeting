@@ -39,7 +39,7 @@ void Button::_initButtonSprite(int edge_point_count, float edge_radius)
     centre_y = button_height - edge_radius;
 
     //to 0right
-    for (int i = edge_point_count; i > 0; i--) {
+    for (int i = edge_point_count; i > 0; --i) {
         float angle = (float)(i * 3.141592653f) / (2.0f * (edge_point_count + 1));
 
         float vertex_x = centre_x + edge_radius * static_cast<float>(sin(angle));
@@ -71,7 +71,7 @@ void Button::_initButtonSprite(int edge_point_count, float edge_radius)
     centre_y = edge_radius;
 
     //bottom left
-    for (int i = edge_point_count; i > 0; i--) {
+    for (int i = edge_point_count; i > 0; --i) {
         float angle = (float)(i * 3.141592653f) / (2.0f * (edge_point_count + 1));
 
         float vertex_x = centre_x - edge_radius * static_cast<float>(sin(angle));
