@@ -225,6 +225,8 @@ bool EMCMeeting::ConnectToHoster_(bool *isCancel) {
 
         if (isCancel && is_cancel) {
 
+            m_user_client.reset();
+
             *isCancel = true;
             return false;
         }
