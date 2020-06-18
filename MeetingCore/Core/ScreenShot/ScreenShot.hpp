@@ -46,7 +46,8 @@ private:
     DWORD m_width, m_height;
     HWND m_desktop_hwnd;
     BITMAPINFO m_bmp_info = {0};
-    HDC m_dev_c;
+    HDC m_dev_c, m_capture_c;
+    HBITMAP m_capture_bitmap;
 
     std::vector<char> rgb_buffer;
 
@@ -57,6 +58,8 @@ private:
 public:
 
     ScreenShot();
+
+    ~ScreenShot();
 
     bool GetScreenShot(sf::Image &image);
 

@@ -41,14 +41,14 @@ ScreenShot::ScreenShot() {
 
     // get rgb_buffer size
     m_dev_c = GetDC(m_desktop_hwnd);
-    HDC CaptureDC = CreateCompatibleDC(m_dev_c);
-    HBITMAP CaptureBitmap = CreateCompatibleBitmap(m_dev_c, m_width, m_height);
+    m_capture_c = CreateCompatibleDC(m_dev_c);
+    m_capture_bitmap = CreateCompatibleBitmap(m_dev_c, m_width, m_height);
+    SelectObject(m_capture_c, m_capture_bitmap);
+
     m_bmp_info.bmiHeader.biSize = sizeof(m_bmp_info.bmiHeader);
-    GetDIBits(CaptureDC, CaptureBitmap, 0, m_height, NULL, &m_bmp_info, DIB_RGB_COLORS);
+    GetDIBits(m_capture_c, m_capture_bitmap, 0, m_height, NULL, &m_bmp_info, DIB_RGB_COLORS);
 
     rgb_buffer.resize(m_bmp_info.bmiHeader.biSizeImage);
-    ReleaseDC(nullptr, m_dev_c);
-    ReleaseDC(nullptr, CaptureDC);
 
     m_success_attach = true;
 
@@ -79,23 +79,14 @@ bool ScreenShot::GetScreenShot(sf::Image &image) {
 
 #elif defined(__WIN32__) || defined(_WIN32)
 
-    m_dev_c = GetDC(m_desktop_hwnd);
-
-    HDC CaptureDC = CreateCompatibleDC(m_dev_c);
-    HBITMAP CaptureBitmap = CreateCompatibleBitmap(m_dev_c, m_width, m_height);
-
-    SelectObject(CaptureDC, CaptureBitmap);
-    BitBlt(CaptureDC, 0, 0, m_width, m_height, m_dev_c, 0, 0, SRCCOPY | CAPTUREBLT);
-
-    //Create a DC to get hBitmap information
-    HDC hDC = GetDC(::GetDesktopWindow());
+    BitBlt(m_capture_c, 0, 0, m_width, m_height, m_dev_c, 0, 0, SRCCOPY | CAPTUREBLT);
 
     //Create BITMAPINFO variable, set size
     BITMAPINFO MyBMInfo = {0};
     MyBMInfo.bmiHeader.biSize = sizeof(MyBMInfo.bmiHeader);
 
     //Get the BITMAPINFO structure from the bitmap
-    if (0 == GetDIBits(CaptureDC, CaptureBitmap, 0, 0, nullptr, &MyBMInfo, DIB_RGB_COLORS)) {
+    if (0 == GetDIBits(m_capture_c, m_capture_bitmap, 0, 0, nullptr, &MyBMInfo, DIB_RGB_COLORS)) {
         // error handling
         return false;
     }
@@ -112,7 +103,7 @@ bool ScreenShot::GetScreenShot(sf::Image &image) {
 
     //Now get the actual data from the picture
     if (0 ==
-        GetDIBits(CaptureDC, CaptureBitmap, 0, MyBMInfo.bmiHeader.biHeight, (LPVOID) rgb_buffer.data(), &MyBMInfo,
+        GetDIBits(m_capture_c, m_capture_bitmap, 0, MyBMInfo.bmiHeader.biHeight, (LPVOID) rgb_buffer.data(), &MyBMInfo,
                   DIB_RGB_COLORS)) {
         // error handling
         return false;
@@ -132,18 +123,22 @@ bool ScreenShot::GetScreenShot(sf::Image &image) {
 
     //Load picture, now with correct pixels and alpha channel
     image.create(MyBMInfo.bmiHeader.biWidth,
-              MyBMInfo.bmiHeader.biHeight, lpPixelWithAlpha);
+                 MyBMInfo.bmiHeader.biHeight, lpPixelWithAlpha);
     image.flipVertically();
 
     //Remove the pixels with alphachannel
     delete[] lpPixelWithAlpha;
 
-    //Release the DC
-    ReleaseDC(::GetDesktopWindow(), hDC);
-    ReleaseDC(nullptr, m_dev_c);
-
     //Notify ok!
     return true;
 
 #endif
+}
+
+ScreenShot::~ScreenShot() {
+
+    ReleaseDC(::GetDesktopWindow(), m_dev_c);
+    DeleteObject(m_capture_bitmap);
+    DeleteDC(m_capture_c);
+
 }
