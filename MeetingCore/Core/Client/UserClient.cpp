@@ -191,69 +191,70 @@ void UserClient::Update() {
 
 void UserClient::MessageHandle_() {
 
-    if (m_server_message.empty()) {
+    while (!m_server_message.empty()) {
 
-        return;
-    }
+        // get the first message from the front
+        auto server_message = std::move(m_server_message.front());
+        m_server_message.pop_front();
 
-    // get the first message from the front
-    auto server_message = std::move(m_server_message.front());
-    m_server_message.pop_front();
-
-    switch (server_message.mes[0]) {
-
-        case Constant::frag_user_leave: {
-
-            ToolBox::log() << "Server leaved." << std::endl;
-            exit(0);
-
+        if (server_message.mes.empty()) {
+            continue;
         }
 
-            break;
+        switch (server_message.mes[0]) {
 
-        case Constant::frag_image: {
+            case Constant::frag_user_leave: {
+
+                ToolBox::log() << "Server leaved." << std::endl;
+                exit(0);
+
+            }
+
+                break;
+
+            case Constant::frag_image: {
 
 
-            server_message.mes.erase(server_message.mes.begin());// delete frag
+                server_message.mes.erase(server_message.mes.begin());// delete frag
 
-            sf::Image recv_image;
-            MessagePackage::ReadImage(server_message, recv_image);
+                sf::Image recv_image;
+                MessagePackage::ReadImage(server_message, recv_image);
 
-            if (m_meeting_core)
-                m_meeting_core->m_main_window->SetImage(recv_image);
+                if (m_meeting_core)
+                    m_meeting_core->m_main_window->SetImage(recv_image);
 
+            }
+
+            case Constant::frag_image_jpg_file: {
+
+                server_message.mes.erase(server_message.mes.begin());// delete frag
+
+                int time_passed_since_streaming_millisecond;
+                std::memcpy(reinterpret_cast<char *>(&time_passed_since_streaming_millisecond),
+                            server_message.mes.data(),
+                            sizeof(time_passed_since_streaming_millisecond)); // get delta time
+
+                // remove time data
+                server_message.mes.erase(server_message.mes.begin(),
+                                         server_message.mes.begin() +
+                                         sizeof(time_passed_since_streaming_millisecond));
+
+                MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
+                sf::Image recv_image;
+
+                recv_image.loadFromFile("resource/tem_recv.jpg");
+                if (m_meeting_core)
+                    m_meeting_core->m_main_window->PushBackImageBuffer(
+                            {recv_image, time_passed_since_streaming_millisecond / 1000.0f});
+            }
+
+                break;
+
+            default:
+                ToolBox::err() << "Unknown message format receive from server. " << std::endl;
+
+                break;
         }
-
-        case Constant::frag_image_jpg_file: {
-
-            server_message.mes.erase(server_message.mes.begin());// delete frag
-
-            int time_passed_since_streaming_millisecond;
-            std::memcpy(reinterpret_cast<char *>(&time_passed_since_streaming_millisecond),
-                        server_message.mes.data(),
-                        sizeof(time_passed_since_streaming_millisecond)); // get delta time
-
-            // remove time data
-            server_message.mes.erase(server_message.mes.begin(),
-                                     server_message.mes.begin() +
-                                     sizeof(time_passed_since_streaming_millisecond));
-
-            MessagePackage::ReadFile(server_message, "resource/tem_recv.jpg");
-            sf::Image recv_image;
-
-            recv_image.loadFromFile("resource/tem_recv.jpg");
-            if (m_meeting_core)
-                m_meeting_core->m_main_window->PushBackImageBuffer(
-                        {recv_image, time_passed_since_streaming_millisecond / 1000.0f});
-        }
-
-            break;
-
-        default:
-            ToolBox::err() << "Unknown message format receive from server. " << std::endl;
-
-            break;
-
     }
 }
 
