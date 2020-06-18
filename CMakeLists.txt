@@ -82,7 +82,7 @@ else ()
     target_link_libraries(EMCMeetinglib UserClientlib)
 
     # Main executable file
-    add_executable(EMCMeeting main.cpp)
+    add_executable(EMCMeeting Main.cpp)
     target_link_libraries(EMCMeeting EMCMeetinglib)
     target_link_libraries(EMCMeeting -static-libgcc -static-libstdc++)
 
