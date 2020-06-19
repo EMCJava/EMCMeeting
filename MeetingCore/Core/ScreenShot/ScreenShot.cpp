@@ -137,8 +137,12 @@ bool ScreenShot::GetScreenShot(sf::Image &image) {
 
 ScreenShot::~ScreenShot() {
 
+#if defined(__WIN32__) || defined(_WIN32)
+
     ReleaseDC(::GetDesktopWindow(), m_dev_c);
     DeleteObject(m_capture_bitmap);
     DeleteDC(m_capture_c);
+
+#endif
 
 }
