@@ -36,8 +36,8 @@ namespace Constant{
 
 #ifdef USE_STATIC_IP
 
-    //const std::string SOCKET_IP = "127.0.0.1";
-    const std::string SOCKET_IP = "25.45.200.22";
+    const std::string SOCKET_IP = "127.0.0.1";
+    //const std::string SOCKET_IP = "25.45.200.22";
 
 #endif
 
