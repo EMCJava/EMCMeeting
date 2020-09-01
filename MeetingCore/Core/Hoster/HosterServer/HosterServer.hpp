@@ -5,6 +5,20 @@
 #ifndef EMCMEETING_HOSTERSERVER_HPP
 #define EMCMEETING_HOSTERSERVER_HPP
 
+#include "../../../../ToolBox/ToolBox.hpp"
+#include "../../../../ToolBox/Constant.hpp"
+
+#include "../../NetWork/Socket.hpp"
+#include "../../NetWork/TCPServer.hpp"
+
+#include "../../ScreenShot/ScreenShot.hpp"
+#include "../../AudioCapturer/AudioCapturer.hpp"
+
+// hoster can collect the active data from user
+#include "../UserDataBase/UserDataBase.hpp"
+#include "../DataCollector/DataCollector.hpp"
+#include "../../MessagePackage/MessagePackage.hpp"
+
 #include <thread>
 #include <memory>
 #include <vector>
@@ -12,11 +26,6 @@
 #include <chrono> // for system clock
 #include <csignal>
 
-#include "../../../../ToolBox/ToolBox.hpp"
-#include "../../../../ToolBox/Constant.hpp"
-
-#include "../../NetWork/Socket.hpp"
-#include "../../NetWork/TCPServer.hpp"
 
 #ifdef __linux__
 
@@ -33,17 +42,11 @@
 
 #endif
 
-#include "../../ScreenShot/ScreenShot.hpp"
-
-// hoster can collect the active data from user
-#include "../UserDataBase/UserDataBase.hpp"
-#include "../DataCollector/DataCollector.hpp"
-#include "../../MessagePackage/MessagePackage.hpp"
-
 class HosterServer {
 
 private:
 
+    std::unique_ptr<AudioCapturer> m_sound_capturer;
     std::unique_ptr<UserDataBase> m_user_data_base;
 
     // the Tcp socket class
@@ -95,11 +98,11 @@ private:
     // store all the message from client
     std::deque<ClientMessageData> m_client_message;
 
-    enum class SendType{
+    enum class SendType {
         BroadCast, Target
     };
 
-    struct SendMessageData{
+    struct SendMessageData {
 
         Socket::Message message;
         SendType type;
@@ -117,22 +120,31 @@ private:
     // store all the message needed to send to client
     std::deque<SendMessageData> m_send_message_queue;
 
+    //
+    std::deque<Socket::Message> m_pure_sound_message;
     /*
      *
      *  if target_fd != nullptr, handle message only for *target_fd
      *
      */
-    void MessageHandle_(const int * target_fd = nullptr);
+    void MessageHandle_(const int *target_fd = nullptr);
+
+    /*
+     *
+     *  Take screen shot and push back to send message queue
+     *
+     */
+    void ScreenShot_();
+
+    void UpdateSoundBufferQueue_();
 
     unsigned int m_max_client = 10;
+    decltype(std::chrono::system_clock::now()) m_streaming_start_time;
 
 #ifdef __linux__
 
     struct epoll_event ev{};
     int kdpfd, curfds = 1;
-
-#elif defined(__WIN32__) || defined(_WIN32)
-
 
 #endif
 
@@ -142,7 +154,7 @@ private:
     // send message to client
     void StartSend_();
 
-    void ResetClient_(Client& client);
+    void ResetClient_(Client &client);
 
     //screen shot
     decltype(std::chrono::system_clock::now()) m_screenshot_timer;
@@ -151,6 +163,7 @@ private:
 public:
 
     explicit HosterServer(unsigned int max_client);
+
     ~HosterServer();
 
     void Start();

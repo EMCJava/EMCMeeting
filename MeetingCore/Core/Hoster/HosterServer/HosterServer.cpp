@@ -22,6 +22,7 @@ HosterServer::HosterServer(unsigned int max_client) : m_max_client(max_client) {
     m_clients.resize(m_max_client, Client{Socket::EmptySock(), false});
 
     m_user_data_base = ToolBox::make_unique<UserDataBase>(std::string(Constant::path_user_account_data));
+    m_sound_capturer = ToolBox::make_unique<AudioCapturer>(&m_pure_sound_message, Constant::AUDIO_RECOED_LENGTH);
 
     m_screenshot_timer = std::chrono::system_clock::now();
 }
@@ -349,47 +350,25 @@ void HosterServer::StartSend_() {
 
 void HosterServer::Update() {
 
-    static auto streaming_start_time = std::chrono::system_clock::now();
+    static bool init_streaming_time = true;
+    if (init_streaming_time) {
+        m_sound_capturer->Start();
+        m_streaming_start_time = std::chrono::system_clock::now();
+        init_streaming_time = false;
+    }
 
     const float time_passed_since_screen_shot = (float) std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now() - m_screenshot_timer).count() *
                                                 std::chrono::microseconds::period::num /
                                                 std::chrono::microseconds::period::den;
-    
+
     if (time_passed_since_screen_shot > Constant::SCREEN_SHOT_DELAY) {
         m_screenshot_timer = std::chrono::system_clock::now();
 
-        sf::Image im;
-        m_screenShot.GetScreenShot(im);
-
-        sf::Image send_im;
-        send_im.create(800, 600);
-        MessagePackage::resizeImage(im, send_im);
-
-        // change format to save send data space
-        send_im.saveToFile(Constant::path_tem_image_send_file);
-
-        Socket::Message send_mes;
-        MessagePackage::GenMessage(send_mes, Constant::path_tem_image_send_file);
-
-        const float time_passed_since_streaming = (float) std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::system_clock::now() - streaming_start_time).count() *
-                                                  std::chrono::microseconds::period::num /
-                                                  std::chrono::microseconds::period::den;
-
-        int time_passed_since_streaming_millisecond = time_passed_since_streaming * 1000;
-
-        // insert delta time
-        send_mes.mes.insert(send_mes.mes.begin(),
-                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
-                            reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond) +
-                            sizeof(time_passed_since_streaming_millisecond));
-
-        // insert frag
-        send_mes.mes.insert(send_mes.mes.begin(), Constant::frag_image_jpg_file);
-
-        m_send_message_queue.emplace_back(std::move(send_mes), SendType::BroadCast, Socket::EmptySock());
+        ScreenShot_();
     }
+
+    UpdateSoundBufferQueue_();
 
     // recv any data from client
     MessageHandle_();
@@ -558,5 +537,77 @@ HosterServer::~HosterServer() {
 
             m_listen_thread->join();
         }
+    }
+
+    if (m_send_thread) {
+
+        // thread has not ended
+        if (m_send_thread->joinable()) {
+
+            m_send_thread->join();
+        }
+    }
+
+    m_sound_capturer->Stop();
+}
+
+void HosterServer::ScreenShot_() {
+    sf::Image im;
+    m_screenShot.GetScreenShot(im);
+
+    sf::Image send_im;
+    send_im.create(800, 600);
+    MessagePackage::resizeImage(im, send_im);
+
+    // change format to save send data space
+    send_im.saveToFile(Constant::path_tem_image_send_file);
+
+    Socket::Message send_mes;
+    MessagePackage::GenMessage(send_mes, Constant::path_tem_image_send_file);
+
+    const float time_passed_since_streaming = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - m_streaming_start_time).count() *
+                                              std::chrono::microseconds::period::num /
+                                              std::chrono::microseconds::period::den;
+
+    int time_passed_since_streaming_millisecond = time_passed_since_streaming * 1000;
+
+    // insert delta time
+    send_mes.mes.insert(send_mes.mes.begin(),
+                        reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
+                        reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond) +
+                        sizeof(time_passed_since_streaming_millisecond));
+
+    // insert frag
+    send_mes.mes.insert(send_mes.mes.begin(), Constant::frag_image_jpg_file);
+
+    m_send_message_queue.emplace_back(std::move(send_mes), SendType::BroadCast, Socket::EmptySock());
+}
+
+void HosterServer::UpdateSoundBufferQueue_() {
+
+    while (!m_pure_sound_message.empty()) {
+
+        Socket::Message sound_mes = std::move(m_pure_sound_message.front());
+        m_pure_sound_message.pop_front();
+
+        const float time_passed_since_streaming = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now() - m_streaming_start_time).count() *
+                                                  std::chrono::microseconds::period::num /
+                                                  std::chrono::microseconds::period::den -
+                                                  Constant::AUDIO_RECOED_LENGTH;
+
+        int time_passed_since_streaming_millisecond = time_passed_since_streaming * 1000;
+
+        // insert delta time
+        sound_mes.mes.insert(sound_mes.mes.begin(),
+                             reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond),
+                             reinterpret_cast<const char *>(&time_passed_since_streaming_millisecond) +
+                             sizeof(time_passed_since_streaming_millisecond));
+
+        // insert frag
+        sound_mes.mes.insert(sound_mes.mes.begin(), Constant::frag_image_jpg_file);
+
+        m_send_message_queue.emplace_back(std::move(sound_mes), SendType::BroadCast, Socket::EmptySock());
     }
 }

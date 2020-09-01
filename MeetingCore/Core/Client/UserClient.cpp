@@ -221,7 +221,7 @@ void UserClient::MessageHandle_() {
                 MessagePackage::ReadImage(server_message, recv_image);
 
                 if (m_meeting_core)
-                    m_meeting_core->m_main_window->SetImage(recv_image);
+                    m_meeting_core->m_main_window->SetImage(std::move(recv_image));
 
             }
 

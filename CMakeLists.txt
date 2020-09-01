@@ -20,7 +20,7 @@ else ()
 
 endif ()
 
-find_package(SFML 2.5 COMPONENTS graphics system window REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics system window audio REQUIRED)
 # include_directories(PUBLIC "C:/SFML/SFML-2.5.1-g++/include")
 
 if (WIN32)
@@ -31,14 +31,21 @@ endif ()
 
 if (UNIT_TEST)
     add_executable(EMCMeeting unit_test/Main.cpp)
-    add_subdirectory(MeetingCore/Core/ScreenShot)
+
+    add_subdirectory(MeetingCore/Core/AudioCapturer)
+    target_link_libraries(AudioCapturerlib sfml-audio)
+
+    add_subdirectory(MeetingCore/Core/MessagePackage)
+    target_link_libraries(MessagePackagelib sfml-audio)
+    target_link_libraries(MessagePackagelib sfml-graphics)
+
+    target_link_libraries(AudioCapturerlib MessagePackagelib)
 
     if (UNIX)
         target_link_libraries(ScreenShotlib X11 Xext)
     endif ()
 
-    target_link_libraries(EMCMeeting ScreenShotlib)
-    target_link_libraries(EMCMeeting sfml-graphics)
+    target_link_libraries(EMCMeeting AudioCapturerlib)
     # target_link_libraries(EMCMeeting -static-libgcc -static-libstdc++)
 else ()
 
@@ -50,10 +57,14 @@ else ()
     endif ()
     target_link_libraries(ScreenShotlib sfml-graphics)
 
+    target_link_libraries(AudioCapturerlib sfml-audio)
+
     target_link_libraries(UserAskWhetherHosterWindowlib sfml-graphics)
     target_link_libraries(ErrorWindowlib sfml-graphics)
     target_link_libraries(UIlib sfml-graphics)
     target_link_libraries(MessagePackagelib sfml-graphics)
+    target_link_libraries(MessagePackagelib sfml-audio)
+
     target_link_libraries(UserClientlib sfml-graphics)
     target_link_libraries(UserClientlib MessagePackagelib)
 
@@ -67,6 +78,7 @@ else ()
     target_link_libraries(HosterServerlib UserDataBaselib)
     target_link_libraries(HosterServerlib MessagePackagelib)
     target_link_libraries(HosterServerlib ScreenShotlib)
+    target_link_libraries(HosterServerlib AudioCapturerlib)
 
     target_link_libraries(UserClientlib TCPClientlib)
 

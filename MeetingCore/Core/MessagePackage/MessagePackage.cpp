@@ -134,3 +134,20 @@ void MessagePackage::ReadFile(Socket::Message &mes, std::string output_file_name
 
     output_file.close();
 }
+
+void MessagePackage::GenMessage(Socket::Message &mes, const sf::SoundBuffer &buffer) {
+
+    buffer.saveToFile("resource/tem_send.ogg");
+    GenMessage(mes, "resource/tem_send.ogg");
+}
+
+void MessagePackage::ReadSoundBuffer(Socket::Message &mes, sf::SoundBuffer &buffer) {
+
+    // no message
+    if (mes.mes.empty()) {
+
+        return;
+    }
+
+    buffer.loadFromMemory(mes.mes.data(), mes.mes.size());
+}

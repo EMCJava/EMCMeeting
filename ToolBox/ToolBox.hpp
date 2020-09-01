@@ -7,6 +7,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <memory>
 
@@ -76,6 +77,11 @@ namespace ToolBox {
         return std::move(result);
     }
 
+    static std::ifstream::pos_type FileSize(const char* filename)
+    {
+        std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+        return in.tellg();
+    }
 
     template<typename T, typename... Ts>
     static std::unique_ptr<T> make_unique(Ts &&... params) {

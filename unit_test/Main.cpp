@@ -2,12 +2,11 @@
 // Created by samsa on 6/17/2020.
 //
 
-#include <string>
-#include <iostream>
 #include <SFML/Graphics.hpp>
 
+#include <deque>
 #include <chrono>
-#include "../MeetingCore/Core/ScreenShot/ScreenShot.hpp"
+#include "../MeetingCore/Core/AudioCapturer/AudioCapturer.hpp"
 
 #define time_use(x) {\
     auto start_time = std::chrono::system_clock::now();\
@@ -18,18 +17,21 @@
 }
 
 int main() {
-    ScreenShot screenShot;
 
-    sf::Image im;
-    time_use(screenShot.GetScreenShot(im))
-    im.flipVertically();
+    std::deque<Socket::Message> audio_message_buffer;
+    AudioCapturer audioCapturer(&audio_message_buffer, 1.0f, 0.0f);
 
     sf::RenderWindow window(sf::VideoMode(800, 600), "Uniy Test");
 
-    sf::Texture tx;
-    tx.loadFromImage(im);
+    audioCapturer.Start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    audioCapturer.Stop();
 
-    sf::Sprite sp(tx);
+    sf::SoundBuffer soundBuffer;
+    MessagePackage::ReadSoundBuffer(audio_message_buffer[0], soundBuffer);
+
+    sf::Sound sound(soundBuffer);
+    sound.play();
 
     // Run the program as long as the window is open
     while (window.isOpen()) {
@@ -45,13 +47,6 @@ int main() {
         }
 
         window.clear();
-
-        screenShot.GetScreenShot(im);
-        im.flipVertically();
-        tx.loadFromImage(im);
-
-        window.draw(sp);
-
         window.display();
     }
 

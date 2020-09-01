@@ -15,7 +15,9 @@ namespace Constant{
     constexpr int SOCKET_PORT = 20546;
     constexpr float SCREEN_SHOT_DELAY = 0.1f;
 
-    constexpr float STREAMING_DELAY = 0.5f;
+    constexpr float AUDIO_RECOED_LENGTH = 1.0f;
+
+    constexpr float STREAMING_DELAY = 5.0f;
 
     static const char positive_message[] = "ACCEPTED";
     static const char negative_message[] = "REJECTED";
@@ -30,6 +32,7 @@ namespace Constant{
     static constexpr char frag_user_leave = 'G';
     static constexpr char frag_image = 'I';
     static constexpr char frag_image_jpg_file = 'J';
+    static constexpr char frag_audio_ogg_file = 'O';
 
     static const char path_user_account_data[] = "Account";
     static const char path_tem_image_send_file[] = "resource/tem.jpg";

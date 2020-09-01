@@ -1,6 +1,7 @@
 add_subdirectory(AccountData)
 add_subdirectory(MessagePackage)
 add_subdirectory(ScreenShot)
+add_subdirectory(AudioCapturer)
 add_subdirectory(Client)
 add_subdirectory(Hoster)
 add_subdirectory(NetWork)
