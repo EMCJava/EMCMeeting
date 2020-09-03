@@ -38,7 +38,7 @@ void AudioCapturer::AudioRecord_() {
 
     std::string target_drive = m_audio_recorder_default_drivce;
 
-    goto skip__;
+    //goto skip__;
 
     // user didn't specify a drive
     if (m_audio_recorder_default_drivce.empty()) {
@@ -55,6 +55,9 @@ void AudioCapturer::AudioRecord_() {
         target_drive = drive_list[0];
     }
 
+    if(!m_recorder)
+        m_recorder = ToolBox::make_unique<sf::SoundBufferRecorder>();
+
     // set the record drivce
     if (!m_recorder->setDevice(target_drive)) {
 
@@ -62,7 +65,7 @@ void AudioCapturer::AudioRecord_() {
         return;
     }
 
-    skip__:
+    //skip__:
 
     while (!m_thread_stop) {
 
